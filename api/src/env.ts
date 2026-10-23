@@ -6,17 +6,19 @@ const envSchema = z.object({
     .default("development"),
   PORT: z.coerce.number().int().positive().optional(),
   DATABASE_URL: z.string().min(1),
-  WEB_ORIGIN: z.string().url().optional(),
-  SESSION_SECRET: z.string().min(1).optional(),
-  SESSION_COOKIE_NAME: z.string().min(1).optional(),
-  SESSION_TTL_HOURS: z.coerce.number().int().positive().optional(),
+  WEB_ORIGIN: z.string().url(),
+  JWT_ACCESS_SECRET: z.string().min(1),
+  JWT_REFRESH_SECRET: z.string().min(1),
   SEED_AUTHOR_PASSWORD: z.string().min(1).optional(),
   SEED_ADMIN_PASSWORD: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
 
+let cachedEnv: Env | undefined;
+
 export function loadEnv(): Env {
+  if (cachedEnv) return cachedEnv;
   const parsed = envSchema.safeParse(process.env);
   if (!parsed.success) {
     const message = parsed.error.issues
@@ -24,7 +26,8 @@ export function loadEnv(): Env {
       .join("; ");
     throw new Error(`Invalid environment: ${message}`);
   }
-  return parsed.data;
+  cachedEnv = parsed.data;
+  return cachedEnv;
 }
 
 export function loadSeedEnv(): {

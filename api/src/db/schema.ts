@@ -276,19 +276,19 @@ export const aiRuns = pgTable("ai_runs", {
   completedAt: timestamp("completed_at", { withTimezone: true, mode: "date" }),
 });
 
-export const sessions = pgTable(
-  "sessions",
+export const refreshTokens = pgTable(
+  "refresh_tokens",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    tokenHash: text("token_hash").notNull(),
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id),
+    jti: text("jti").notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true, mode: "date" }).notNull(),
     revokedAt: timestamp("revoked_at", { withTimezone: true, mode: "date" }),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
       .notNull()
       .defaultNow(),
   },
-  (t) => [uniqueIndex("sessions_token_hash_unique").on(t.tokenHash)],
+  (t) => [uniqueIndex("refresh_tokens_jti_unique").on(t.jti)],
 );

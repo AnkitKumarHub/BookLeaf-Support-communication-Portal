@@ -58,6 +58,10 @@ export class AppError extends Error {
     return new AppError(409, "CONFLICT", message);
   }
 
+  static rateLimited(message = "Too many attempts. Try again later.") {
+    return new AppError(429, "RATE_LIMITED", message);
+  }
+
   static internal() {
     return new AppError(
       500,
