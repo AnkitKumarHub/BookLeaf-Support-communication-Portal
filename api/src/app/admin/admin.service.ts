@@ -10,6 +10,7 @@ import {
   type TicketCategory,
   type TicketPriority,
 } from "./admin.constants.js";
+import { publishTicketChanged, type TicketChanged } from "../realtime/ticket-bus.js";
 
 export type TicketPatch = {
   status?: TicketStatus;
@@ -44,10 +45,12 @@ export async function patchTicket(
   ticketId: string,
   patch: TicketPatch,
 ): Promise<PatchedTicketJson> {
-  return db.transaction(async (tx) => {
+  let changed: TicketChanged | null = null;
+  const result = await db.transaction(async (tx) => {
     const [current] = await tx
       .select({
         id: tickets.id,
+        authorId: tickets.authorId,
         status: tickets.status,
         aiCategory: tickets.aiCategory,
         categoryOverride: tickets.categoryOverride,
@@ -127,6 +130,11 @@ export async function patchTicket(
           })),
         );
       }
+      changed = {
+        ticketId,
+        authorId: current.authorId,
+        audience: values.status ? "all" : "admin",
+      };
     }
 
     const categoryOverride =
@@ -147,6 +155,8 @@ export async function patchTicket(
       updatedAt: updatedAt.toISOString(),
     };
   });
+  if (changed) publishTicketChanged(changed);
+  return result;
 }
 
 export async function assignTicket(
@@ -154,9 +164,10 @@ export async function assignTicket(
   ticketId: string,
 ): Promise<AssignmentJson> {
   const name = await adminName(userId);
-  return db.transaction(async (tx) => {
+  let changed: TicketChanged | null = null;
+  const result = await db.transaction(async (tx) => {
     const [current] = await tx
-      .select({ assignedAdminId: tickets.assignedAdminId })
+      .select({ assignedAdminId: tickets.assignedAdminId, authorId: tickets.authorId })
       .from(tickets)
       .where(eq(tickets.id, ticketId))
       .for("update")
@@ -184,17 +195,21 @@ export async function assignTicket(
       eventType: "ticket.assigned",
       payload: { from: current.assignedAdminId, to: userId },
     });
+    changed = { ticketId, authorId: current.authorId, audience: "admin" };
     return { id: ticketId, assigneeName: name, assignedToMe: true };
   });
+  if (changed) publishTicketChanged(changed);
+  return result;
 }
 
 export async function unassignTicket(
   userId: string,
   ticketId: string,
 ): Promise<AssignmentJson> {
-  return db.transaction(async (tx) => {
+  let changed: TicketChanged | null = null;
+  const result = await db.transaction(async (tx) => {
     const [current] = await tx
-      .select({ assignedAdminId: tickets.assignedAdminId })
+      .select({ assignedAdminId: tickets.assignedAdminId, authorId: tickets.authorId })
       .from(tickets)
       .where(eq(tickets.id, ticketId))
       .for("update")
@@ -213,8 +228,11 @@ export async function unassignTicket(
       eventType: "ticket.unassigned",
       payload: { from: current.assignedAdminId, to: null },
     });
+    changed = { ticketId, authorId: current.authorId, audience: "admin" };
     return { id: ticketId, assigneeName: null, assignedToMe: false };
   });
+  if (changed) publishTicketChanged(changed);
+  return result;
 }
 
 export async function addNote(
@@ -222,8 +240,9 @@ export async function addNote(
   ticketId: string,
   body: string,
 ): Promise<MessageJson> {
-  return db.transaction(async (tx) => {
-    await assertTicket(tx, ticketId);
+  let authorId = "";
+  const result = await db.transaction(async (tx) => {
+    authorId = await assertTicket(tx, ticketId);
     const [note] = await tx
       .insert(ticketMessages)
       .values({
@@ -250,6 +269,8 @@ export async function addNote(
       createdAt: note.createdAt.toISOString(),
     };
   });
+  publishTicketChanged({ ticketId, authorId, audience: "admin" });
+  return result;
 }
 
 export async function addReply(
@@ -257,13 +278,15 @@ export async function addReply(
   ticketId: string,
   body: string,
 ): Promise<MessageJson> {
-  return db.transaction(async (tx) => {
+  let authorId = "";
+  const result = await db.transaction(async (tx) => {
     const [current] = await tx
-      .select({ status: tickets.status })
+      .select({ status: tickets.status, authorId: tickets.authorId })
       .from(tickets)
       .where(eq(tickets.id, ticketId))
       .limit(1);
     if (!current) throw AppError.notFound();
+    authorId = current.authorId;
 
     const now = new Date();
     const [reply] = await tx
@@ -310,6 +333,8 @@ export async function addReply(
       createdAt: reply.createdAt.toISOString(),
     };
   });
+  publishTicketChanged({ ticketId, authorId, audience: "all" });
+  return result;
 }
 
 export async function retryTriage(ticketId: string): Promise<{
@@ -324,8 +349,9 @@ export async function retryTriage(ticketId: string): Promise<{
       updatedAt: new Date(),
     })
     .where(eq(tickets.id, ticketId))
-    .returning({ aiJobVersion: tickets.aiJobVersion });
+    .returning({ aiJobVersion: tickets.aiJobVersion, authorId: tickets.authorId });
   if (!updated) throw AppError.notFound();
+  publishTicketChanged({ ticketId, authorId: updated.authorId, audience: "admin" });
   try {
     await inngest.send(ticketCreatedEvent(ticketId, updated.aiJobVersion));
   } catch {
@@ -383,8 +409,13 @@ export async function regenerateDraft(
       updatedAt: now,
     })
     .where(eq(tickets.id, ticketId))
-    .returning({ aiJobVersion: tickets.aiJobVersion, updatedAt: tickets.updatedAt });
+    .returning({
+      aiJobVersion: tickets.aiJobVersion,
+      updatedAt: tickets.updatedAt,
+      authorId: tickets.authorId,
+    });
   if (!updated) throw AppError.notFound();
+  publishTicketChanged({ ticketId, authorId: updated.authorId, audience: "admin" });
   try {
     await inngest.send(
       ticketDraftRequestedEvent(ticketId, updated.aiJobVersion, updated.updatedAt.toISOString()),
@@ -445,11 +476,12 @@ async function adminName(userId: string): Promise<string> {
 async function assertTicket(
   tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
   ticketId: string,
-): Promise<void> {
+): Promise<string> {
   const [row] = await tx
-    .select({ id: tickets.id })
+    .select({ authorId: tickets.authorId })
     .from(tickets)
     .where(eq(tickets.id, ticketId))
     .limit(1);
   if (!row) throw AppError.notFound();
+  return row.authorId;
 }

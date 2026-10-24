@@ -35,6 +35,7 @@ import {
 } from "./openai.js";
 import { buildTriageUserMessage, fitRationale } from "./triage.js";
 import { TRIAGE_PROMPT_VERSION } from "./triage.js";
+import { publishTicketChanged } from "../realtime/ticket-bus.js";
 
 type ClassifyLoad = {
   id: string;
@@ -293,7 +294,7 @@ async function runClassifyAttempt(
       await markClassifyFailed(ticket.id, jobVersion);
       throw new AiFailure("invalid_output");
     }
-    await db
+    const classified = await db
       .update(tickets)
       .set({
         aiCategory: category,
@@ -309,7 +310,9 @@ async function runClassifyAttempt(
           eq(tickets.aiJobVersion, jobVersion),
           eq(tickets.aiState, "processing"),
         ),
-      );
+      )
+      .returning({ authorId: tickets.authorId });
+    notifyAdmins(ticket.id, classified);
     await finishRun(runId, "completed", null, result);
     return { status: "completed" };
   } catch (err) {
@@ -390,7 +393,8 @@ async function runDraftAttempt(
           isNull(tickets.draftEditedAt),
         ),
       )
-      .returning({ id: tickets.id });
+      .returning({ authorId: tickets.authorId });
+    notifyAdmins(ticket.id, saved);
     if (saved.length === 0) {
       const [current] = await db
         .select({ draftEditedAt: tickets.draftEditedAt })
@@ -478,7 +482,7 @@ async function finishRun(
 }
 
 async function markClassifyFailed(ticketId: string, jobVersion: number): Promise<void> {
-  await db
+  const rows = await db
     .update(tickets)
     .set({ aiState: "failed", updatedAt: new Date() })
     .where(
@@ -487,14 +491,25 @@ async function markClassifyFailed(ticketId: string, jobVersion: number): Promise
         eq(tickets.aiJobVersion, jobVersion),
         inArray(tickets.aiState, ["pending", "processing"]),
       ),
-    );
+    )
+    .returning({ authorId: tickets.authorId });
+  notifyAdmins(ticketId, rows);
 }
 
 async function markDraftFailed(ticketId: string): Promise<void> {
-  await db
+  const rows = await db
     .update(tickets)
     .set({ draftState: "failed", updatedAt: new Date() })
-    .where(and(eq(tickets.id, ticketId), eq(tickets.draftState, "pending")));
+    .where(and(eq(tickets.id, ticketId), eq(tickets.draftState, "pending")))
+    .returning({ authorId: tickets.authorId });
+  notifyAdmins(ticketId, rows);
+}
+
+// AI results are admin-only. Publish only when the update changed a row, so a
+// replayed or stale job does not send a signal for nothing.
+function notifyAdmins(ticketId: string, updated: { authorId: string }[]): void {
+  const [row] = updated;
+  if (row) publishTicketChanged({ ticketId, authorId: row.authorId, audience: "admin" });
 }
 
 function asCategory(value: string): TicketCategory | null {

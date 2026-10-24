@@ -17,6 +17,7 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction) {
       id: payload.sub,
       role: payload.role,
       authorId: payload.authorId,
+      expiresAt: new Date(payload.exp * 1000),
     };
     next();
   } catch {

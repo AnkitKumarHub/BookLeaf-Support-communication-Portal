@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { and, eq, isNull, gt } from "drizzle-orm";
 import type { Response } from "express";
 import { db } from "../../db/index.js";
-import { refreshTokens, users } from "../../db/schema.js";
+import { admins, authors, refreshTokens, users } from "../../db/schema.js";
 import { AppError } from "../shared/errors.js";
 import { signAccess, signRefresh, verifyRefresh } from "../shared/jwt.js";
 import {
@@ -89,13 +89,8 @@ export async function login(
     throw AppError.unauthenticated(INVALID_LOGIN);
   }
 
-  const identity: PublicIdentity = {
-    id: user.id,
-    email: user.email,
-    role: user.role,
-    authorId: user.authorId,
-  };
-  const tokens = await issueTokenPair(identity);
+  const tokens = await issueTokenPair(user);
+  const identity = await getIdentity(user.id);
   return { identity, ...tokens };
 }
 
@@ -174,10 +169,21 @@ export async function revokeRefresh(refreshToken: string | undefined) {
   }
 }
 
+// The only builder of the identity object, so login and me always return the same shape.
 export async function getIdentity(userId: string): Promise<PublicIdentity> {
   const [user] = await db
-    .select()
+    .select({
+      id: users.id,
+      email: users.email,
+      role: users.role,
+      authorId: users.authorId,
+      disabledAt: users.disabledAt,
+      authorName: authors.name,
+      adminName: admins.name,
+    })
     .from(users)
+    .leftJoin(authors, eq(users.authorId, authors.id))
+    .leftJoin(admins, eq(users.adminId, admins.id))
     .where(eq(users.id, userId))
     .limit(1);
 
@@ -188,6 +194,7 @@ export async function getIdentity(userId: string): Promise<PublicIdentity> {
   return {
     id: user.id,
     email: user.email,
+    name: user.authorName ?? user.adminName ?? user.email,
     role: user.role,
     authorId: user.authorId,
   };

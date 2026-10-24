@@ -6,6 +6,7 @@ import { inngestHandler } from "./ai/serve.js";
 import { mountAdminRoutes } from "./admin/admin.module.js";
 import { mountAuthRoutes } from "./auth/auth.module.js";
 import { mountBooksRoutes } from "./books/books.module.js";
+import { mountRealtimeRoutes } from "./realtime/realtime.module.js";
 import { mountTicketsRoutes } from "./tickets/tickets.module.js";
 import { errorHandler, notFoundHandler } from "./shared/error-handler.js";
 
@@ -34,6 +35,7 @@ export function createServerApplication(): Application {
   mountBooksRoutes(app);
   mountTicketsRoutes(app);
   mountAdminRoutes(app);
+  mountRealtimeRoutes(app);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

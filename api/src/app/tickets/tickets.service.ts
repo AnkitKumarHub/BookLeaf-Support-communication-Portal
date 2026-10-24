@@ -11,6 +11,7 @@ import { inngest, ticketCreatedEvent } from "../ai/inngest.js";
 import { authorOwnsBook, toBookJson, type BookJson } from "../books/books.service.js";
 import { AppError } from "../shared/errors.js";
 import { assertCreateRateLimit } from "./create-rate-limit.js";
+import { publishTicketChanged } from "../realtime/ticket-bus.js";
 
 const TICKET_STATUSES = ["open", "in_progress", "resolved", "closed"] as const;
 export type TicketStatus = (typeof TICKET_STATUSES)[number];
@@ -134,6 +135,7 @@ export async function createTicket(input: {
   }
 
   const { jobVersion, ...response } = created;
+  publishTicketChanged({ ticketId: response.id, authorId: input.authorId, audience: "admin" });
   try {
     await inngest.send(ticketCreatedEvent(response.id, jobVersion));
   } catch {

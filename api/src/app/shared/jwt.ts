@@ -53,7 +53,7 @@ export function signRefresh(userId: string, jti: string): string {
   return jwt.sign(payload, loadEnv().JWT_REFRESH_SECRET, options);
 }
 
-export function verifyAccess(token: string): AccessTokenPayload {
+export function verifyAccess(token: string): AccessTokenPayload & { exp: number } {
   const decoded = readPayload(token, loadEnv().JWT_ACCESS_SECRET);
   if (
     decoded["type"] !== "access" ||
@@ -66,11 +66,16 @@ export function verifyAccess(token: string): AccessTokenPayload {
   if (authorId !== null && typeof authorId !== "string") {
     throw new jwt.JsonWebTokenError("Invalid access token");
   }
+  const exp = decoded["exp"];
+  if (typeof exp !== "number") {
+    throw new jwt.JsonWebTokenError("Invalid access token");
+  }
   return {
     sub: decoded["sub"],
     role: decoded["role"],
     authorId,
     type: "access",
+    exp,
   };
 }
 

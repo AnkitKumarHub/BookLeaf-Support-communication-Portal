@@ -17,6 +17,7 @@ import { AppError } from "../shared/errors.js";
 import { likePattern } from "../shared/like.js";
 import type { TicketStatus } from "../tickets/tickets.service.js";
 import type { TicketCategory, TicketPriority } from "./admin.constants.js";
+import { publishTicketChanged } from "../realtime/ticket-bus.js";
 
 const assigneeUser = alias(users, "assignee_user");
 const noteUser = alias(users, "note_user");
@@ -165,10 +166,12 @@ export async function getAdminTicket(
     .returning({
       updatedAt: tickets.updatedAt,
       aiJobVersion: tickets.aiJobVersion,
+      authorId: tickets.authorId,
     });
   if (claimed) {
     ticket.draftState = "pending";
     ticket.updatedAt = claimed.updatedAt;
+    publishTicketChanged({ ticketId, authorId: claimed.authorId, audience: "admin" });
     try {
       await inngest.send(
         ticketDraftRequestedEvent(
