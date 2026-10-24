@@ -6,3 +6,7 @@ export const AUTHOR_TICKETS_KEY = "/author/tickets?limit=100";
 export function authorTicketKey(ticketId: string): string {
   return `/author/tickets/${ticketId}`;
 }
+
+export function adminTicketKey(ticketId: string): string {
+  return `/admin/tickets/${ticketId}`;
+}

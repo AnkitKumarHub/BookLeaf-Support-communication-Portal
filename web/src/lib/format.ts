@@ -1,4 +1,4 @@
-import type { TicketStatus } from "./types";
+import type { TicketCategory, TicketPriority, TicketStatus } from "./types";
 
 export const EM_DASH = "—";
 
@@ -68,3 +68,42 @@ export function isInProduction(bookStatus: string): boolean {
 }
 
 export const GENERAL_TICKET_LABEL = "General / Account Level";
+
+export const CATEGORY_LABELS: Record<TicketCategory, string> = {
+  royalty_payments: "Royalty & Payments",
+  isbn_metadata: "ISBN & Metadata Issues",
+  printing_quality: "Printing & Quality",
+  distribution_availability: "Distribution & Availability",
+  production_status: "Book Status & Production Updates",
+  general_inquiry: "General Inquiry",
+};
+
+export const TICKET_CATEGORIES = Object.keys(CATEGORY_LABELS) as TicketCategory[];
+
+export const PRIORITY_LABELS: Record<TicketPriority, string> = {
+  critical: "Critical",
+  high: "High",
+  medium: "Medium",
+  low: "Low",
+};
+
+export const TICKET_PRIORITIES = Object.keys(PRIORITY_LABELS) as TicketPriority[];
+
+// Mirrors ALLOWED_TRANSITIONS in the API. The API still enforces it (409).
+export const ALLOWED_TRANSITIONS: Record<TicketStatus, TicketStatus[]> = {
+  open: ["in_progress", "resolved", "closed"],
+  in_progress: ["open", "resolved", "closed"],
+  resolved: ["in_progress", "closed"],
+  closed: ["in_progress"],
+};
+
+export function isUnresolved(status: TicketStatus): boolean {
+  return status === "open" || status === "in_progress";
+}
+
+// Unresolved for longer than this is shown as overdue in the queue.
+const STALE_AFTER_MS = 3 * 24 * 60 * 60 * 1000;
+
+export function isOverdue(status: TicketStatus, createdAt: string, now = Date.now()): boolean {
+  return isUnresolved(status) && now - new Date(createdAt).getTime() > STALE_AFTER_MS;
+}

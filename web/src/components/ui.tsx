@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { EM_DASH, formatMoney, TICKET_STATUS_LABELS } from "@/lib/format";
-import type { TicketStatus } from "@/lib/types";
+import { CATEGORY_LABELS, EM_DASH, formatMoney, PRIORITY_LABELS, TICKET_STATUS_LABELS } from "@/lib/format";
+import type { AiState, TicketCategory, TicketPriority, TicketStatus } from "@/lib/types";
 
 // Null renders as an em dash; zero and empty strings are real values.
 export function Dash() {
@@ -36,6 +36,63 @@ export function StatusPill({ status }: { status: TicketStatus }) {
       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${STATUS_STYLES[status]}`}
     >
       {TICKET_STATUS_LABELS[status]}
+    </span>
+  );
+}
+
+const PRIORITY_STYLES: Record<TicketPriority, string> = {
+  critical: "bg-red-600 text-white",
+  high: "bg-orange-100 text-orange-900 ring-1 ring-inset ring-orange-300",
+  medium: "bg-sky-50 text-sky-800 ring-1 ring-inset ring-sky-200",
+  low: "bg-neutral-100 text-neutral-600",
+};
+
+// A missing priority is never shown as a real one: it is "AI pending" while
+// the model runs and "AI unavailable" when it failed.
+export function PriorityBadge({
+  priority,
+  aiState,
+  overridden = false,
+}: {
+  priority: TicketPriority | null;
+  aiState: AiState;
+  overridden?: boolean;
+}) {
+  if (!priority) {
+    return aiState === "failed" ? (
+      <span className="inline-flex whitespace-nowrap rounded-md bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-200">
+        AI unavailable
+      </span>
+    ) : (
+      <span className="inline-flex whitespace-nowrap rounded-md border border-dashed border-neutral-300 px-2 py-0.5 text-xs text-neutral-500">
+        AI pending
+      </span>
+    );
+  }
+  return (
+    <span className={`inline-flex items-center gap-1 whitespace-nowrap rounded-md px-2 py-0.5 text-xs font-semibold ${PRIORITY_STYLES[priority]}`}>
+      {PRIORITY_LABELS[priority]}
+      {overridden && <span title="Set by an admin" className="font-normal opacity-75">· edited</span>}
+    </span>
+  );
+}
+
+export function CategoryLabel({
+  category,
+  aiState,
+  overridden = false,
+}: {
+  category: TicketCategory | null;
+  aiState: AiState;
+  overridden?: boolean;
+}) {
+  if (!category) {
+    return <span className="text-xs text-neutral-400">{aiState === "failed" ? "AI unavailable" : "AI pending"}</span>;
+  }
+  return (
+    <span className="text-sm">
+      {CATEGORY_LABELS[category]}
+      {overridden && <span title="Set by an admin" className="ml-1 text-xs text-neutral-500">· edited</span>}
     </span>
   );
 }
@@ -153,6 +210,12 @@ export function Field({
     </label>
   );
 }
+
+export const buttonClass =
+  "rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50";
+
+export const primaryButtonClass =
+  "rounded-md bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50";
 
 export const inputClass =
   "block w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 aria-[invalid=true]:border-red-400";
