@@ -2,6 +2,7 @@ import { and, asc, count, eq, sql, type SQL } from "drizzle-orm";
 import { books } from "../../db/schema.js";
 import { db } from "../../db/index.js";
 import { AppError } from "../shared/errors.js";
+import { likePattern } from "../shared/like.js";
 
 export type BookJson = {
   id: string;
@@ -143,11 +144,6 @@ function bookFilters(
     );
   }
   return and(...conditions);
-}
-
-function likePattern(value: string): string {
-  const escaped = value.replace(/[\\%_]/g, (char) => `\\${char}`);
-  return `%${escaped}%`;
 }
 
 function formatMoney(value: string | null): string | null {

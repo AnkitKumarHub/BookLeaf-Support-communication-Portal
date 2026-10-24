@@ -17,6 +17,23 @@ export function parsePagination(input: {
   };
 }
 
+export function parseDateRange(input: {
+  from?: unknown;
+  to?: unknown;
+}): { from?: Date; to?: Date } {
+  const from = parseDay(input.from, "from", false);
+  const to = parseDay(input.to, "to", true);
+  if (from && to && from.getTime() > to.getTime()) {
+    throw AppError.validation("Please correct the highlighted fields.", {
+      from: "Use a from date on or before to.",
+    });
+  }
+  const range: { from?: Date; to?: Date } = {};
+  if (from) range.from = from;
+  if (to) range.to = to;
+  return range;
+}
+
 export function optionalFilter(value: unknown, field: string): string | undefined {
   if (value === undefined) return undefined;
   if (typeof value !== "string") {
@@ -48,6 +65,47 @@ function parseBound(
     throw boundError(field);
   }
   return parsed;
+}
+
+function parseDay(
+  value: unknown,
+  field: string,
+  endOfDay: boolean,
+): Date | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "string") throw dateError(field);
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return undefined;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (!match) throw dateError(field);
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(
+    Date.UTC(
+      year,
+      month - 1,
+      day,
+      endOfDay ? 23 : 0,
+      endOfDay ? 59 : 0,
+      endOfDay ? 59 : 0,
+      endOfDay ? 999 : 0,
+    ),
+  );
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    throw dateError(field);
+  }
+  return date;
+}
+
+function dateError(field: string) {
+  return AppError.validation("Please correct the highlighted fields.", {
+    [field]: "Use a date as YYYY-MM-DD.",
+  });
 }
 
 function boundError(field: string) {

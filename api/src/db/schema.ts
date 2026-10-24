@@ -90,6 +90,11 @@ export const authors = pgTable(
   (t) => [uniqueIndex("authors_source_id_unique").on(t.sourceId)],
 );
 
+export const admins = pgTable("admins", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+});
+
 export const users = pgTable(
   "users",
   {
@@ -98,6 +103,7 @@ export const users = pgTable(
     passwordHash: text("password_hash").notNull(),
     role: userRoleEnum("role").notNull(),
     authorId: uuid("author_id").references(() => authors.id),
+    adminId: uuid("admin_id").references(() => admins.id),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
       .notNull()
       .defaultNow(),
@@ -108,8 +114,8 @@ export const users = pgTable(
     check(
       "users_role_author_check",
       sql`(
-        (${t.role} = 'author' AND ${t.authorId} IS NOT NULL)
-        OR (${t.role} = 'admin' AND ${t.authorId} IS NULL)
+        (${t.role} = 'author' AND ${t.authorId} IS NOT NULL AND ${t.adminId} IS NULL)
+        OR (${t.role} = 'admin' AND ${t.adminId} IS NOT NULL AND ${t.authorId} IS NULL)
       )`,
     ),
   ],

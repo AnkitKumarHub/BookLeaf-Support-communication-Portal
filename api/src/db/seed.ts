@@ -5,8 +5,8 @@ import { fileURLToPath } from "node:url";
 import bcrypt from "bcryptjs";
 import { count, eq } from "drizzle-orm";
 import { loadSeedEnv } from "../env.js";
-import { db } from "./index.js";
-import { authors, books, users } from "./schema.js";
+import { closeDb, db } from "./index.js";
+import { admins, authors, books, users } from "./schema.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SAMPLE_PATH = path.resolve(
@@ -155,13 +155,38 @@ async function main() {
       });
   }
 
+  const adminEmail = "admin@bookleaf.dev";
+  const [existingAdmin] = await db
+    .select({ adminId: users.adminId })
+    .from(users)
+    .where(eq(users.email, adminEmail))
+    .limit(1);
+
+  let adminProfileId = existingAdmin?.adminId ?? null;
+  if (adminProfileId) {
+    await db
+      .update(admins)
+      .set({ name: "BookLeaf Admin" })
+      .where(eq(admins.id, adminProfileId));
+  } else {
+    const [profile] = await db
+      .insert(admins)
+      .values({ name: "BookLeaf Admin" })
+      .returning({ id: admins.id });
+    if (!profile) {
+      throw new Error("Failed to insert admin profile");
+    }
+    adminProfileId = profile.id;
+  }
+
   await db
     .insert(users)
     .values({
-      email: "admin@bookleaf.dev",
+      email: adminEmail,
       passwordHash: adminPasswordHash,
       role: "admin",
       authorId: null,
+      adminId: adminProfileId,
     })
     .onConflictDoUpdate({
       target: users.email,
@@ -169,6 +194,7 @@ async function main() {
         passwordHash: adminPasswordHash,
         role: "admin",
         authorId: null,
+        adminId: adminProfileId,
       },
     });
 
@@ -184,7 +210,9 @@ async function main() {
   );
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+main()
+  .catch((err) => {
+    console.error(err);
+    process.exitCode = 1;
+  })
+  .finally(() => closeDb());

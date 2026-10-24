@@ -52,6 +52,28 @@ export function requireAuthor(req: Request, res: Response, next: NextFunction) {
   });
 }
 
+export function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  requireAuth(req, res, (err?: unknown) => {
+    if (err) {
+      next(err);
+      return;
+    }
+    if (!req.auth || req.auth.role !== "admin") {
+      next(AppError.forbidden());
+      return;
+    }
+    next();
+  });
+}
+
+export function requestAdmin(req: Request): { userId: string } {
+  const auth = req.auth;
+  if (!auth || auth.role !== "admin") {
+    throw AppError.forbidden();
+  }
+  return { userId: auth.id };
+}
+
 export function requestAuthor(req: Request): { userId: string; authorId: string } {
   const auth = req.auth;
   if (!auth || auth.role !== "author" || !auth.authorId) {

@@ -2,6 +2,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import express, { type Application } from "express";
 import { loadEnv } from "../env.js";
+import { mountAdminRoutes } from "./admin/admin.module.js";
 import { mountAuthRoutes } from "./auth/auth.module.js";
 import { mountBooksRoutes } from "./books/books.module.js";
 import { mountTicketsRoutes } from "./tickets/tickets.module.js";
@@ -29,6 +30,7 @@ export function createServerApplication(): Application {
   mountAuthRoutes(app);
   mountBooksRoutes(app);
   mountTicketsRoutes(app);
+  mountAdminRoutes(app);
 
   app.use(notFoundHandler);
   app.use(errorHandler);
