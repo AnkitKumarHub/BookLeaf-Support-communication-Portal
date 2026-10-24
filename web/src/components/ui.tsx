@@ -1,0 +1,158 @@
+"use client";
+
+import Link from "next/link";
+import type { ReactNode } from "react";
+import { EM_DASH, formatMoney, TICKET_STATUS_LABELS } from "@/lib/format";
+import type { TicketStatus } from "@/lib/types";
+
+// Null renders as an em dash; zero and empty strings are real values.
+export function Dash() {
+  return (
+    <span className="text-neutral-400" aria-label="Not available">
+      {EM_DASH}
+    </span>
+  );
+}
+
+export function Money({ value }: { value: string | number | null }) {
+  const text = formatMoney(value);
+  return text === null ? <Dash /> : <span className="tabular-nums">{text}</span>;
+}
+
+export function Text({ value }: { value: string | null }) {
+  return value === null || value === "" ? <Dash /> : <>{value}</>;
+}
+
+const STATUS_STYLES: Record<TicketStatus, string> = {
+  open: "bg-sky-50 text-sky-800 ring-sky-200",
+  in_progress: "bg-amber-50 text-amber-800 ring-amber-200",
+  resolved: "bg-emerald-50 text-emerald-800 ring-emerald-200",
+  closed: "bg-neutral-100 text-neutral-600 ring-neutral-200",
+};
+
+export function StatusPill({ status }: { status: TicketStatus }) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${STATUS_STYLES[status]}`}
+    >
+      {TICKET_STATUS_LABELS[status]}
+    </span>
+  );
+}
+
+export function Badge({ children, tone = "neutral" }: { children: ReactNode; tone?: "neutral" | "green" | "amber" }) {
+  const tones = {
+    neutral: "bg-neutral-100 text-neutral-700",
+    green: "bg-emerald-50 text-emerald-800",
+    amber: "bg-amber-50 text-amber-800",
+  };
+  return (
+    <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${tones[tone]}`}>
+      {children}
+    </span>
+  );
+}
+
+export function PageHeader({
+  title,
+  description,
+  onRefresh,
+  refreshing,
+  actions,
+}: {
+  title: ReactNode;
+  description?: ReactNode;
+  onRefresh?: () => void;
+  refreshing?: boolean;
+  actions?: ReactNode;
+}) {
+  return (
+    <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+      <div className="min-w-0">
+        <h1 className="text-xl font-semibold">{title}</h1>
+        {description && <p className="mt-1 text-sm text-neutral-500">{description}</p>}
+      </div>
+      <div className="flex items-center gap-2">
+        {onRefresh && (
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={refreshing}
+            className="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-100 disabled:opacity-60"
+          >
+            {refreshing ? "Refreshing…" : "Refresh"}
+          </button>
+        )}
+        {actions}
+      </div>
+    </div>
+  );
+}
+
+export function ButtonLink({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="rounded-md bg-emerald-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-800"
+    >
+      {children}
+    </Link>
+  );
+}
+
+export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <div className={`rounded-xl border border-neutral-200 bg-white p-5 ${className}`}>{children}</div>;
+}
+
+export function EmptyState({ title, children }: { title: string; children?: ReactNode }) {
+  return (
+    <div className="rounded-xl border border-dashed border-neutral-300 bg-white px-6 py-12 text-center">
+      <p className="font-medium">{title}</p>
+      {children && <div className="mt-2 text-sm text-neutral-500">{children}</div>}
+    </div>
+  );
+}
+
+export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  return (
+    <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-800">
+      {message}
+      {onRetry && (
+        <button type="button" onClick={onRetry} className="ml-3 font-medium underline">
+          Try again
+        </button>
+      )}
+    </div>
+  );
+}
+
+export function Skeleton({ className = "" }: { className?: string }) {
+  return <div className={`animate-pulse rounded-md bg-neutral-200/70 ${className}`} aria-hidden />;
+}
+
+export function Field({
+  label,
+  error,
+  hint,
+  children,
+}: {
+  label: string;
+  error?: string;
+  hint?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="text-sm font-medium">{label}</span>
+      <div className="mt-1">{children}</div>
+      {error ? (
+        <span className="mt-1 block text-xs text-red-600">{error}</span>
+      ) : (
+        hint && <span className="mt-1 block text-xs text-neutral-500">{hint}</span>
+      )}
+    </label>
+  );
+}
+
+export const inputClass =
+  "block w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 aria-[invalid=true]:border-red-400";
