@@ -37,3 +37,25 @@ export function requireRole(role: UserRole) {
     next();
   };
 }
+
+export function requireAuthor(req: Request, res: Response, next: NextFunction) {
+  requireAuth(req, res, (err?: unknown) => {
+    if (err) {
+      next(err);
+      return;
+    }
+    if (!req.auth || req.auth.role !== "author" || !req.auth.authorId) {
+      next(AppError.forbidden());
+      return;
+    }
+    next();
+  });
+}
+
+export function requestAuthor(req: Request): { userId: string; authorId: string } {
+  const auth = req.auth;
+  if (!auth || auth.role !== "author" || !auth.authorId) {
+    throw AppError.forbidden();
+  }
+  return { userId: auth.id, authorId: auth.authorId };
+}

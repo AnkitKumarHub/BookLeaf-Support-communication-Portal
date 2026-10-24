@@ -3,6 +3,8 @@ import cors from "cors";
 import express, { type Application } from "express";
 import { loadEnv } from "../env.js";
 import { mountAuthRoutes } from "./auth/auth.module.js";
+import { mountBooksRoutes } from "./books/books.module.js";
+import { mountTicketsRoutes } from "./tickets/tickets.module.js";
 import { errorHandler, notFoundHandler } from "./shared/error-handler.js";
 
 export function createServerApplication(): Application {
@@ -25,6 +27,8 @@ export function createServerApplication(): Application {
   });
 
   mountAuthRoutes(app);
+  mountBooksRoutes(app);
+  mountTicketsRoutes(app);
 
   app.use(notFoundHandler);
   app.use(errorHandler);
