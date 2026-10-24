@@ -1,6 +1,8 @@
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
-import { admins, ticketEvents, ticketMessages, tickets, users } from "../../db/schema.js";
+import { aiRuns, admins, ticketEvents, ticketMessages, tickets, users } from "../../db/schema.js";
+import { inngest, ticketCreatedEvent, ticketDraftRequestedEvent } from "../ai/inngest.js";
+import { assertDraftRegenerateLimit } from "./draft-rate-limit.js";
 import { AppError } from "../shared/errors.js";
 import type { TicketStatus } from "../tickets/tickets.service.js";
 import {
@@ -308,6 +310,125 @@ export async function addReply(
       createdAt: reply.createdAt.toISOString(),
     };
   });
+}
+
+export async function retryTriage(ticketId: string): Promise<{
+  aiState: "pending";
+  aiJobVersion: number;
+}> {
+  const [updated] = await db
+    .update(tickets)
+    .set({
+      aiJobVersion: sql`${tickets.aiJobVersion} + 1`,
+      aiState: "pending",
+      updatedAt: new Date(),
+    })
+    .where(eq(tickets.id, ticketId))
+    .returning({ aiJobVersion: tickets.aiJobVersion });
+  if (!updated) throw AppError.notFound();
+  try {
+    await inngest.send(ticketCreatedEvent(ticketId, updated.aiJobVersion));
+  } catch {
+    console.error("ticket.created send failed", { ticketId });
+  }
+  return { aiState: "pending", aiJobVersion: updated.aiJobVersion };
+}
+
+export async function saveDraft(
+  ticketId: string,
+  body: string,
+): Promise<{ body: string; draftState: string; draftEditedAt: string }> {
+  const now = new Date();
+  const [updated] = await db
+    .update(tickets)
+    .set({ draftBody: body, draftEditedAt: now, updatedAt: now })
+    .where(eq(tickets.id, ticketId))
+    .returning({
+      draftBody: tickets.draftBody,
+      draftState: tickets.draftState,
+      draftEditedAt: tickets.draftEditedAt,
+    });
+  if (!updated || !updated.draftBody || !updated.draftEditedAt) throw AppError.notFound();
+  return {
+    body: updated.draftBody,
+    draftState: updated.draftState,
+    draftEditedAt: updated.draftEditedAt.toISOString(),
+  };
+}
+
+export async function regenerateDraft(
+  ticketId: string,
+  confirmDiscardEdits: boolean,
+): Promise<{ draftState: "pending" }> {
+  const [current] = await db
+    .select({
+      id: tickets.id,
+      draftEditedAt: tickets.draftEditedAt,
+      aiJobVersion: tickets.aiJobVersion,
+    })
+    .from(tickets)
+    .where(eq(tickets.id, ticketId))
+    .limit(1);
+  if (!current) throw AppError.notFound();
+  if (current.draftEditedAt && !confirmDiscardEdits) {
+    throw AppError.conflict("Confirm discarding edits before regenerating.");
+  }
+  assertDraftRegenerateLimit(ticketId);
+  const now = new Date();
+  const [updated] = await db
+    .update(tickets)
+    .set({
+      draftState: "pending",
+      draftEditedAt: null,
+      updatedAt: now,
+    })
+    .where(eq(tickets.id, ticketId))
+    .returning({ aiJobVersion: tickets.aiJobVersion, updatedAt: tickets.updatedAt });
+  if (!updated) throw AppError.notFound();
+  try {
+    await inngest.send(
+      ticketDraftRequestedEvent(ticketId, updated.aiJobVersion, updated.updatedAt.toISOString()),
+    );
+  } catch {
+    console.error("ticket.draft_requested send failed", { ticketId });
+  }
+  return { draftState: "pending" };
+}
+
+export async function getAiRun(runId: string) {
+  const [run] = await db
+    .select({
+      id: aiRuns.id,
+      ticketId: aiRuns.ticketId,
+      taskType: aiRuns.taskType,
+      state: aiRuns.state,
+      attempt: aiRuns.attempt,
+      model: aiRuns.model,
+      promptVersion: aiRuns.promptVersion,
+      inputTokens: aiRuns.inputTokens,
+      outputTokens: aiRuns.outputTokens,
+      errorCode: aiRuns.errorCode,
+      startedAt: aiRuns.startedAt,
+      completedAt: aiRuns.completedAt,
+    })
+    .from(aiRuns)
+    .where(eq(aiRuns.id, runId))
+    .limit(1);
+  if (!run) throw AppError.notFound();
+  return {
+    id: run.id,
+    ticketId: run.ticketId,
+    taskType: run.taskType,
+    state: run.state,
+    attempt: run.attempt,
+    model: run.model,
+    promptVersion: run.promptVersion,
+    inputTokens: run.inputTokens,
+    outputTokens: run.outputTokens,
+    errorCode: run.errorCode,
+    startedAt: run.startedAt.toISOString(),
+    completedAt: run.completedAt ? run.completedAt.toISOString() : null,
+  };
 }
 
 async function adminName(userId: string): Promise<string> {

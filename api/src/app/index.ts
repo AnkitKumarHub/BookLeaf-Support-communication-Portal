@@ -2,6 +2,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import express, { type Application } from "express";
 import { loadEnv } from "../env.js";
+import { inngestHandler } from "./ai/serve.js";
 import { mountAdminRoutes } from "./admin/admin.module.js";
 import { mountAuthRoutes } from "./auth/auth.module.js";
 import { mountBooksRoutes } from "./books/books.module.js";
@@ -26,6 +27,8 @@ export function createServerApplication(): Application {
   app.get("/health", (_req, res) => {
     return res.json({ server: "ok" });
   });
+
+  app.use("/api/inngest", inngestHandler);
 
   mountAuthRoutes(app);
   mountBooksRoutes(app);

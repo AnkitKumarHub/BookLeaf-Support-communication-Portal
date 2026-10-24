@@ -11,6 +11,7 @@ import {
   tickets,
   users,
 } from "../../db/schema.js";
+import { inngest, ticketDraftRequestedEvent } from "../ai/inngest.js";
 import { toBookJson, type BookJson } from "../books/books.service.js";
 import { AppError } from "../shared/errors.js";
 import { likePattern } from "../shared/like.js";
@@ -156,6 +157,30 @@ export async function getAdminTicket(
     .where(eq(tickets.id, ticketId))
     .limit(1);
   if (!ticket) throw AppError.notFound();
+
+  const [claimed] = await db
+    .update(tickets)
+    .set({ draftState: "pending", updatedAt: new Date() })
+    .where(and(eq(tickets.id, ticketId), eq(tickets.draftState, "none")))
+    .returning({
+      updatedAt: tickets.updatedAt,
+      aiJobVersion: tickets.aiJobVersion,
+    });
+  if (claimed) {
+    ticket.draftState = "pending";
+    ticket.updatedAt = claimed.updatedAt;
+    try {
+      await inngest.send(
+        ticketDraftRequestedEvent(
+          ticketId,
+          claimed.aiJobVersion,
+          claimed.updatedAt.toISOString(),
+        ),
+      );
+    } catch {
+      console.error("ticket.draft_requested send failed", { ticketId });
+    }
+  }
 
   const [replies, notes, attachments, events] = await Promise.all([
     db

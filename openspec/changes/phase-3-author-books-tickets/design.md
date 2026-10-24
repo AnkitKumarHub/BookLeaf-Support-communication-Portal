@@ -78,7 +78,7 @@ Detail: same author predicate. `replies` are public messages ordered by `created
 
 ## Risks / Trade-offs
 
-- [Inngest is down or unsigned] → Create still returns 201 and leaves `ai_state = pending`. Those rows stay pending until Phase 5's recovery cron. That is the required failure mode.
+- [Inngest is down or unsigned] → Create still returns 201 and leaves `ai_state = pending`. Those rows stay pending until an admin presses retry triage (Phase 5). That is the required failure mode.
 - [In-memory create limit] → A restart clears it, and two API processes would not share it. The assignment forbids Redis for this demo. Validation and ownership failures do not consume slots; a crash between recording the slot and insert can consume one.
 - [Sequence gaps] → `nextval` is not rolled back if the insert fails. Ownership is checked first so a foreign `bookId` does not burn an id.
 - [Concurrent creates] → Two requests can both pass the limiter and slightly exceed 20. Acceptable for the demo limiter.

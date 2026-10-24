@@ -7,7 +7,7 @@ import {
   ticketMessages,
   tickets,
 } from "../../db/schema.js";
-import { inngest, TICKET_CREATED_EVENT } from "../ai/inngest.js";
+import { inngest, ticketCreatedEvent } from "../ai/inngest.js";
 import { authorOwnsBook, toBookJson, type BookJson } from "../books/books.service.js";
 import { AppError } from "../shared/errors.js";
 import { assertCreateRateLimit } from "./create-rate-limit.js";
@@ -135,10 +135,7 @@ export async function createTicket(input: {
 
   const { jobVersion, ...response } = created;
   try {
-    await inngest.send({
-      name: TICKET_CREATED_EVENT,
-      data: { ticketId: response.id, jobVersion },
-    });
+    await inngest.send(ticketCreatedEvent(response.id, jobVersion));
   } catch {
     console.error("ticket.created send failed", { ticketId: response.id });
   }

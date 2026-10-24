@@ -16,7 +16,11 @@ import {
   addNote,
   addReply,
   assignTicket,
+  getAiRun,
   patchTicket,
+  regenerateDraft,
+  retryTriage,
+  saveDraft,
   unassignTicket,
   type TicketPatch,
 } from "./admin.service.js";
@@ -79,12 +83,44 @@ export async function addAdminReplyController(req: Request, res: Response) {
   sendData(res, await addReply(userId, ticketId(req), parseMessageBody(req.body)), 201);
 }
 
+export async function retryTriageController(req: Request, res: Response) {
+  requestAdmin(req);
+  sendData(res, await retryTriage(ticketId(req)), 202);
+}
+
+export async function saveDraftController(req: Request, res: Response) {
+  requestAdmin(req);
+  sendData(res, await saveDraft(ticketId(req), parseMessageBody(req.body)));
+}
+
+export async function regenerateDraftController(req: Request, res: Response) {
+  requestAdmin(req);
+  sendData(res, await regenerateDraft(ticketId(req), confirmDiscard(req.body)), 202);
+}
+
+export async function getAiRunController(req: Request, res: Response) {
+  requestAdmin(req);
+  sendData(res, await getAiRun(runId(req)));
+}
+
 function ticketId(req: Request): string {
-  const ticketId = req.params.ticketId;
-  if (typeof ticketId !== "string" || !isUuid(ticketId)) {
+  return uuidParam(req.params.ticketId);
+}
+
+function runId(req: Request): string {
+  return uuidParam(req.params.runId);
+}
+
+function uuidParam(value: string | string[] | undefined): string {
+  if (typeof value !== "string" || !isUuid(value)) {
     throw AppError.notFound();
   }
-  return ticketId;
+  return value;
+}
+
+function confirmDiscard(body: unknown): boolean {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) return false;
+  return (body as Record<string, unknown>).confirmDiscardEdits === true;
 }
 
 function parseAssignee(value: string | undefined): "me" | "unassigned" | undefined {
