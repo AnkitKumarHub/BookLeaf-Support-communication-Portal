@@ -56,7 +56,7 @@ export function Composer({ ticket, refresh }: { ticket: AdminTicketDetail; refre
     <section>
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-semibold text-neutral-700">Reply to the author</h2>
-        <DraftStatus state={ticket.draftState} aiState={ticket.aiState} />
+        <DraftStatus state={ticket.draftState} aiState={ticket.aiState} hasDraft={Boolean(draft)} />
       </div>
       <div className="rounded-xl border border-neutral-200 bg-white p-4">
         {sent && !text && (
@@ -130,9 +130,11 @@ export function Composer({ ticket, refresh }: { ticket: AdminTicketDetail; refre
 function DraftStatus({
   state,
   aiState,
+  hasDraft,
 }: {
   state: AdminTicketDetail["draftState"];
   aiState: AdminTicketDetail["aiState"];
+  hasDraft: boolean;
 }) {
   // The API starts the draft only after triage, so it uses the ticket's category.
   if (state === "none" && (aiState === "pending" || aiState === "processing")) {
@@ -144,7 +146,8 @@ function DraftStatus({
   if (state === "failed") {
     return <span className="text-xs text-red-700">AI draft unavailable. Write the reply yourself.</span>;
   }
-  if (state === "suggested") {
+  // After a reply is sent the stored draft is cleared, so there is nothing to label.
+  if (state === "suggested" && hasDraft) {
     return <span className="text-xs text-neutral-500">AI draft. Review and edit before sending.</span>;
   }
   return null;

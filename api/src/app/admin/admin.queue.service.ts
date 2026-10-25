@@ -109,7 +109,7 @@ export async function listAdminTickets(input: {
     .leftJoin(assigneeUser, eq(tickets.assignedAdminId, assigneeUser.id))
     .leftJoin(admins, eq(assigneeUser.adminId, admins.id))
     .where(where)
-    .orderBy(statusRank(), priorityRank(), asc(tickets.createdAt), asc(tickets.id))
+    .orderBy(openWorkRank(), priorityRank(), statusRank(), asc(tickets.createdAt), asc(tickets.id))
     .limit(input.limit)
     .offset((input.page - 1) * input.limit);
 
@@ -415,6 +415,14 @@ function queueFilters(input: {
   return conditions.length > 0 ? and(...conditions) : undefined;
 }
 
+// Queue order: unresolved work first (open and in progress together), then
+// resolved, then closed. Priority comes next, so a High ticket in progress is
+// not buried under a Medium that is merely open.
+function openWorkRank() {
+  return sql`case ${tickets.status} when 'open' then 0 when 'in_progress' then 0 when 'resolved' then 1 else 2 end`;
+}
+
+// Within one priority, open (no reply sent yet) comes before in progress.
 function statusRank() {
   return sql`case ${tickets.status} when 'open' then 0 when 'in_progress' then 1 when 'resolved' then 2 else 3 end`;
 }

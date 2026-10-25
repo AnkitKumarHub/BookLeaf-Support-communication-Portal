@@ -101,13 +101,12 @@ export default function AdminTicketPage({ params }: PageProps<"/admin/tickets/[i
               </Card>
             </section>
 
-            <section>
-              <h2 className="mb-2 text-sm font-semibold text-neutral-700">
-                Replies sent to the author {ticket.replies.length > 0 && `(${ticket.replies.length})`}
-              </h2>
-              {ticket.replies.length === 0 ? (
-                <p className="text-sm text-neutral-500">No reply sent yet.</p>
-              ) : (
+            {/* Shown only once a reply exists; an empty block would just be noise. */}
+            {ticket.replies.length > 0 && (
+              <section>
+                <h2 className="mb-2 text-sm font-semibold text-neutral-700">
+                  Replies sent to the author ({ticket.replies.length})
+                </h2>
                 <ol className="space-y-3">
                   {ticket.replies.map((reply) => (
                     <li key={reply.id} className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4">
@@ -118,8 +117,8 @@ export default function AdminTicketPage({ params }: PageProps<"/admin/tickets/[i
                     </li>
                   ))}
                 </ol>
-              )}
-            </section>
+              </section>
+            )}
 
             <Composer ticket={ticket} refresh={refresh} />
             <Notes ticket={ticket} refresh={refresh} />

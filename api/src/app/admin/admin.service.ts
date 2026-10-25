@@ -309,6 +309,10 @@ export async function addReply(
       .update(tickets)
       .set({
         updatedAt: now,
+        // The draft has been used: clear it so reopening the ticket starts
+        // with an empty reply box. Regenerate makes a new one when needed.
+        draftBody: null,
+        draftEditedAt: null,
         ...(moved ? { status: "in_progress" as const } : {}),
       })
       .where(eq(tickets.id, ticketId));

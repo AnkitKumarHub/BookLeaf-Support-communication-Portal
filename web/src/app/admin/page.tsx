@@ -79,7 +79,7 @@ function Queue() {
     <>
       <PageHeader
         title="Ticket queue"
-        description="Unresolved first, then priority (Critical, High, Needs triage, Medium, Low), then oldest."
+        description="Unresolved first, then priority (Critical, High, Needs triage, Medium, Low), then open before in progress, then oldest."
         onRefresh={() => void mutate()}
         refreshing={isValidating}
       />

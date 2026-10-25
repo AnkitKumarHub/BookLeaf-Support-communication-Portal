@@ -41,7 +41,7 @@ export function createAdminRouter(): ExpressRouter {
   route.get("/admin/tickets", {
     summary: "Ticket queue",
     description:
-      "All authors. Unresolved first (open, then in progress), then priority (Critical, High, unclassified, Medium, Low), then oldest. A ticket with no effective category or priority does not match a specific category or priority filter.",
+      "All authors. Unresolved tickets (open and in progress) first, then resolved, then closed. Within each group: priority (Critical, High, unclassified, Medium, Low), then open before in progress, then oldest first. A ticket with no effective category or priority does not match a specific category or priority filter.",
     access: "admin",
     query: queueQuery,
     responses: { 200: { description: "One page of the queue.", schema: z.array(queueRow), paged: true } },
