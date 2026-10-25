@@ -3,8 +3,8 @@
 import { AppShell } from "@/components/app-shell";
 
 const NAV = [
-  { href: "/admin", label: "Ticket queue" },
-  { href: "/admin/dashboard", label: "Dashboard" },
+  { href: "/admin", label: "Dashboard" },
+  { href: "/admin/ticket-queue", label: "Ticket queue", match: ["/admin/ticket-queue", "/admin/tickets"] },
 ];
 
 export default function AdminLayout({ children }: LayoutProps<"/admin">) {

@@ -23,7 +23,7 @@ export default function AdminTicketPage({ params }: PageProps<"/admin/tickets/[i
   if (error && toApiError(error).status === 404) {
     return (
       <EmptyState title="Ticket not found">
-        <Link href="/admin" className="font-medium text-emerald-700 hover:underline">
+        <Link href="/admin/ticket-queue" className="font-medium text-emerald-700 hover:underline">
           Back to the queue
         </Link>
       </EmptyState>
@@ -32,7 +32,7 @@ export default function AdminTicketPage({ params }: PageProps<"/admin/tickets/[i
 
   return (
     <>
-      <Link href="/admin" className="mb-3 inline-block text-sm text-neutral-500 hover:text-neutral-800">
+      <Link href="/admin/ticket-queue" className="mb-3 inline-block text-sm text-neutral-500 hover:text-neutral-800">
         ← Queue
       </Link>
 

@@ -6,7 +6,15 @@ import type { ReactNode } from "react";
 import { RequireRole, useAuthActions, useMe, type Role } from "@/lib/auth";
 import { useTicketStream } from "@/lib/stream";
 
-export type NavItem = { href: string; label: string };
+export type NavItem = { href: string; label: string; match?: string[] };
+
+function matchLength(item: NavItem, pathname: string): number {
+  const prefixes = item.match ?? [item.href];
+  return prefixes.reduce((best, prefix) => {
+    const hit = pathname === prefix || pathname.startsWith(`${prefix}/`);
+    return hit ? Math.max(best, prefix.length) : best;
+  }, 0);
+}
 
 // Header, nav, and the live stream for one portal. Only rendered once the
 // signed-in user has the right role.
@@ -36,9 +44,11 @@ function Shell({ nav, role, children }: { nav: NavItem[]; role: Role; children: 
   const home = nav[0]?.href ?? "/";
 
   // Most specific match wins, so /author/books lights up My Books, not Overview.
+  // Optional prefixes cover pages that live beside a nav item, such as a ticket under the queue.
   const active = nav
-    .filter((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))
-    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
+    .map((item) => ({ href: item.href, length: matchLength(item, pathname) }))
+    .filter((item) => item.length > 0)
+    .sort((a, b) => b.length - a.length)[0]?.href;
 
   return (
     <div className="flex flex-1 flex-col">

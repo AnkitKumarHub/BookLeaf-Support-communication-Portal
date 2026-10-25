@@ -1,278 +1,263 @@
 "use client";
 
+import { Flag } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import useSWR from "swr";
-import {
-  buttonClass,
-  CategoryLabel,
-  EmptyState,
-  ErrorState,
-  inputClass,
-  PageHeader,
-  PriorityBadge,
-  Skeleton,
-  StatusPill,
-} from "@/components/ui";
+import { Card, Dash, ErrorState, PageHeader, Skeleton } from "@/components/ui";
 import type { Envelope } from "@/lib/api";
-import {
-  CATEGORY_LABELS,
-  formatAge,
-  formatDateTime,
-  GENERAL_TICKET_LABEL,
-  isOverdue,
-  isUnresolved,
-  PRIORITY_LABELS,
-  TICKET_CATEGORIES,
-  TICKET_PRIORITIES,
-  TICKET_STATUSES,
-  TICKET_STATUS_LABELS,
-} from "@/lib/format";
-import type { AdminQueueRow } from "@/lib/types";
+import { formatAge, formatCostInr, formatCount, formatPercent } from "@/lib/format";
+import { ADMIN_STATS_KEY } from "@/lib/keys";
+import type { AdminStats } from "@/lib/types";
 
-const PAGE_SIZE = 50;
-const FILTER_KEYS = ["status", "category", "priority", "assignee", "from", "to", "q"] as const;
-type FilterKey = (typeof FILTER_KEYS)[number];
-
-export default function AdminQueuePage() {
-  // useSearchParams needs a Suspense boundary in the App Router.
-  return (
-    <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-      <Queue />
-    </Suspense>
-  );
-}
-
-function Queue() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const params = useSearchParams();
-  const page = Math.max(1, Number(params.get("page") ?? 1) || 1);
-
-  // The URL is the source of truth for filters, so refresh and shared links keep them.
-  const query = new URLSearchParams({ limit: String(PAGE_SIZE), page: String(page) });
-  for (const key of FILTER_KEYS) {
-    const value = params.get(key);
-    if (value) query.set(key, value);
-  }
-  const { data, error, isValidating, mutate } = useSWR<Envelope<AdminQueueRow[]>>(`/admin/tickets?${query}`);
-
-  const setFilter = useCallback(
-    (key: FilterKey | "page", value: string) => {
-      const next = new URLSearchParams(params.toString());
-      if (value) next.set(key, value);
-      else next.delete(key);
-      if (key !== "page") next.delete("page");
-      const text = next.toString();
-      router.replace(text ? `${pathname}?${text}` : pathname, { scroll: false });
-    },
-    [params, pathname, router],
-  );
-
-  const hasFilters = FILTER_KEYS.some((key) => params.get(key));
-  const total = data?.meta?.total ?? 0;
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const rows = data?.data;
+// Kept live by the SSE stream: every ticket change refetches these numbers.
+export default function AdminDashboardPage() {
+  const { data, error, isValidating, mutate } = useSWR<Envelope<AdminStats>>(ADMIN_STATS_KEY);
+  const stats = data?.data;
 
   return (
     <>
       <PageHeader
-        title="Ticket queue"
-        description="Unresolved first, then priority (Critical, High, Needs triage, Medium, Low), then open before in progress, then oldest."
+        title="Dashboard"
+        description="Tickets and AI usage. Today and this week use India time; weeks start on Monday."
         onRefresh={() => void mutate()}
         refreshing={isValidating}
       />
 
-      <Filters params={params} onChange={setFilter} onClear={() => router.replace(pathname, { scroll: false })} hasFilters={hasFilters} />
+      {error && <ErrorState message="The dashboard could not be loaded." onRetry={() => void mutate()} />}
 
-      {error && <ErrorState message="The queue could not be loaded." onRetry={() => void mutate()} />}
-
-      {!data && !error && (
-        <div className="space-y-2">
-          {[0, 1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-14 w-full" />
+      {!stats && !error && (
+        <div className="grid gap-4 md:grid-cols-3">
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} className="h-28 w-full" />
           ))}
         </div>
       )}
 
-      {rows && rows.length === 0 && (
-        <EmptyState title={hasFilters ? "No tickets match these filters" : "No tickets yet"}>
-          {hasFilters && (
-            <button type="button" onClick={() => router.replace(pathname)} className="font-medium text-emerald-700 hover:underline">
-              Clear filters
-            </button>
-          )}
-        </EmptyState>
-      )}
-
-      {rows && rows.length > 0 && (
-        <>
-          <p className="mb-2 text-xs text-neutral-500">
-            {total} {total === 1 ? "ticket" : "tickets"}
-          </p>
-          <div className="overflow-x-auto rounded-xl border border-neutral-200 bg-white">
-            <table className="w-full min-w-[56rem] text-left text-sm">
-              <thead className="border-b border-neutral-200 bg-neutral-50 text-xs font-medium text-neutral-500">
-                <tr>
-                  <th className="px-4 py-2.5">Priority</th>
-                  <th className="px-4 py-2.5">Ticket</th>
-                  <th className="px-4 py-2.5">Category</th>
-                  <th className="px-4 py-2.5">Status</th>
-                  <th className="px-4 py-2.5">Assignee</th>
-                  <th className="px-4 py-2.5">Age</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-100">
-                {rows.map((row) => (
-                  <QueueRow key={row.id} row={row} />
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {pages > 1 && (
-            <div className="mt-4 flex items-center justify-between text-sm">
-              <button type="button" className={buttonClass} disabled={page <= 1} onClick={() => setFilter("page", String(page - 1))}>
-                Previous
-              </button>
-              <span className="text-neutral-500">
-                Page {page} of {pages}
-              </span>
-              <button type="button" className={buttonClass} disabled={page >= pages} onClick={() => setFilter("page", String(page + 1))}>
-                Next
-              </button>
-            </div>
-          )}
-        </>
+      {stats && (
+        <div className="space-y-8">
+          <TicketsSection stats={stats} />
+          <AiUsageSection stats={stats} />
+          <AiQualitySection stats={stats} />
+        </div>
       )}
     </>
   );
 }
 
-function QueueRow({ row }: { row: AdminQueueRow }) {
-  const stale = isOverdue(row.status, row.createdAt);
-  const urgent = isUnresolved(row.status) && row.effectivePriority === "critical";
+function SectionTitle({ children }: { children: ReactNode }) {
+  return <h2 className="mb-3 text-sm font-semibold text-neutral-700">{children}</h2>;
+}
+
+function Label({ children }: { children: ReactNode }) {
+  return <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">{children}</p>;
+}
+
+function Big({ children }: { children: ReactNode }) {
+  return <p className="mt-2 text-3xl font-semibold tabular-nums">{children}</p>;
+}
+
+function TicketsSection({ stats }: { stats: AdminStats }) {
+  const { created, closed, open, total, daily } = stats.tickets;
+  const openShare = total > 0 ? (open / total) * 100 : 0;
   return (
-    <tr className={`hover:bg-neutral-50 ${urgent ? "bg-red-50/40" : ""} ${row.status === "closed" ? "text-neutral-500" : ""}`}>
-      <td className={`px-4 py-3 ${urgent ? "border-l-4 border-red-500" : "border-l-4 border-transparent"}`}>
-        <PriorityBadge priority={row.effectivePriority} aiState={row.aiState} overridden={row.priorityOverride !== null} />
-      </td>
-      <td className="max-w-md px-4 py-3">
-        <Link href={`/admin/tickets/${row.id}`} className="block font-medium text-neutral-900 hover:text-emerald-800 hover:underline">
-          {row.subject}
-        </Link>
-        <span className="block truncate text-xs text-neutral-500">
-          {row.publicId} · {row.authorName} · {row.bookTitle ?? GENERAL_TICKET_LABEL}
-        </span>
-      </td>
-      <td className="px-4 py-3">
-        <CategoryLabel category={row.effectiveCategory} aiState={row.aiState} overridden={row.categoryOverride !== null} />
-      </td>
-      <td className="px-4 py-3">
-        <StatusPill status={row.status} />
-      </td>
-      <td className="px-4 py-3 text-xs">
-        {row.assignedToMe ? (
-          <span className="font-medium text-emerald-800">You</span>
-        ) : (
-          (row.assigneeName ?? <span className="text-neutral-400">Unassigned</span>)
-        )}
-      </td>
-      <td className="px-4 py-3 text-xs" title={formatDateTime(row.createdAt)}>
-        <span className={stale ? "font-semibold text-red-700" : "text-neutral-600"}>{formatAge(row.createdAt)}</span>
-      </td>
-    </tr>
+    <section>
+      <SectionTitle>Tickets</SectionTitle>
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <Label>Today</Label>
+          <Big>{created.today}</Big>
+          <p className="mt-1 text-sm text-neutral-600">new · {closed.today} closed</p>
+        </Card>
+        <Card>
+          <Label>This week</Label>
+          <Big>{created.week}</Big>
+          <p className="mt-1 text-sm text-neutral-600">new · {closed.week} closed</p>
+        </Card>
+        <Card>
+          <Label>All tickets</Label>
+          <Big>{total}</Big>
+          <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-emerald-100" aria-hidden>
+            <div className="bg-amber-400" style={{ width: `${openShare}%` }} />
+          </div>
+          <p className="mt-2 flex justify-between text-sm text-neutral-600">
+            <span>
+              <span className="mr-1 inline-block size-2 rounded-full bg-amber-400" aria-hidden />
+              {open} open
+            </span>
+            <span>
+              <span className="mr-1 inline-block size-2 rounded-full bg-emerald-300" aria-hidden />
+              {closed.all} resolved or closed
+            </span>
+          </p>
+        </Card>
+      </div>
+      <DailyBars daily={daily} />
+    </section>
   );
 }
 
-function Filters({
-  params,
-  onChange,
-  onClear,
-  hasFilters,
-}: {
-  params: URLSearchParams | ReturnType<typeof useSearchParams>;
-  onChange: (key: FilterKey, value: string) => void;
-  onClear: () => void;
-  hasFilters: boolean;
-}) {
-  const [search, setSearch] = useState(params.get("q") ?? "");
-  const urlSearch = params.get("q") ?? "";
-
-  // Debounce typing so each keystroke does not refetch the queue.
-  useEffect(() => {
-    if (search.trim() === urlSearch) return;
-    const timer = setTimeout(() => onChange("q", search.trim()), 350);
-    return () => clearTimeout(timer);
-  }, [search, urlSearch, onChange]);
-
-  const select = (key: FilterKey, label: string, options: { value: string; label: string }[]) => (
-    <label className="flex w-40 flex-col gap-1 text-xs text-neutral-500">
-      {label}
-      <select value={params.get(key) ?? ""} onChange={(e) => onChange(key, e.target.value)} className={`${inputClass} py-1.5`}>
-        <option value="">All</option>
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-
+// New tickets per day for the last 14 days, as plain CSS bars.
+function DailyBars({ daily }: { daily: AdminStats["tickets"]["daily"] }) {
+  const max = Math.max(1, ...daily.map((day) => day.created));
+  const label = (date: string) =>
+    new Date(`${date}T00:00:00Z`).toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "UTC" });
   return (
-    <div className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-neutral-200 bg-white p-4">
-      <label className="flex min-w-[16rem] flex-1 flex-col gap-1 text-xs text-neutral-500">
-        Search
-        <input
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Ticket id, subject, author name or email"
-          className={`${inputClass} py-1.5`}
-        />
-      </label>
-      {select("status", "Status", TICKET_STATUSES.map((value) => ({ value, label: TICKET_STATUS_LABELS[value] })))}
-      {select("priority", "Priority", TICKET_PRIORITIES.map((value) => ({ value, label: PRIORITY_LABELS[value] })))}
-      {select("category", "Category", TICKET_CATEGORIES.map((value) => ({ value, label: CATEGORY_LABELS[value] })))}
-      {select("assignee", "Assignee", [
-        { value: "me", label: "Assigned to me" },
-        { value: "unassigned", label: "Unassigned" },
-      ])}
-      <div className="flex flex-col gap-1 text-xs text-neutral-500">
-        Created between
-        <div className="flex gap-1">
-          <input
-            type="date"
-            aria-label="Created from"
-            value={params.get("from") ?? ""}
-            onChange={(e) => onChange("from", e.target.value)}
-            className={`${inputClass} w-36 px-2 py-1.5`}
-          />
-          <input
-            type="date"
-            aria-label="Created to"
-            value={params.get("to") ?? ""}
-            onChange={(e) => onChange("to", e.target.value)}
-            className={`${inputClass} w-36 px-2 py-1.5`}
-          />
-        </div>
+    <Card className="mt-4">
+      <Label>New tickets, last 14 days</Label>
+      <div className="mt-4 flex h-28 items-end gap-1.5" role="img" aria-label="New tickets per day for the last 14 days">
+        {daily.map((day) => (
+          <div key={day.date} className="flex h-full flex-1 flex-col items-center justify-end gap-1" title={`${label(day.date)}: ${day.created}`}>
+            {day.created > 0 && <span className="text-[10px] tabular-nums text-neutral-500">{day.created}</span>}
+            <div
+              className={`w-full rounded-t ${day.created > 0 ? "bg-emerald-600" : "bg-neutral-200"}`}
+              style={{ height: day.created > 0 ? `${(day.created / max) * 80}%` : "2px" }}
+            />
+          </div>
+        ))}
       </div>
-      {hasFilters && (
-        <div className="flex w-full">
-          <button
-            type="button"
-            onClick={() => {
-              setSearch("");
-              onClear();
-            }}
-            className="text-xs font-medium text-emerald-700 hover:underline"
-          >
-            Clear all filters
-          </button>
-        </div>
+      <div className="mt-1 flex justify-between text-[11px] text-neutral-500">
+        <span>{daily[0] && label(daily[0].date)}</span>
+        <span>Today</span>
+      </div>
+    </Card>
+  );
+}
+
+const TASK_LABELS = { classify: "Classification", draft: "Reply drafts" } as const;
+
+function AiUsageSection({ stats }: { stats: AdminStats }) {
+  const { tokens, byModel, byTask, avgCostPerTicketInr, usdToInr, unpricedModels } = stats.ai;
+  const periods = [
+    ["Today", tokens.today],
+    ["This week", tokens.week],
+    ["All time", tokens.all],
+  ] as const;
+  return (
+    <section>
+      <SectionTitle>AI usage and cost</SectionTitle>
+      <div className="grid gap-4 md:grid-cols-4">
+        {periods.map(([title, period]) => (
+          <Card key={title}>
+            <Label>{title}</Label>
+            <Big>{formatCostInr(period.costInr)}</Big>
+            <p className="mt-1 text-sm text-neutral-600">{formatCount(period.inputTokens + period.outputTokens)} tokens</p>
+          </Card>
+        ))}
+        <Card>
+          <Label>Per ticket</Label>
+          <Big>{avgCostPerTicketInr === null ? <Dash /> : formatCostInr(avgCostPerTicketInr)}</Big>
+          <p className="mt-1 text-sm text-neutral-600">average, classify + draft</p>
+        </Card>
+      </div>
+
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <Card>
+          <Label>Models in use</Label>
+          {byModel.length === 0 ? (
+            <p className="mt-3 text-sm text-neutral-500">No AI runs yet.</p>
+          ) : (
+            <UsageTable
+              rows={byModel.map((row) => ({ name: row.model, mono: true, ...row }))}
+            />
+          )}
+        </Card>
+        <Card>
+          <Label>By task</Label>
+          {byTask.length === 0 ? (
+            <p className="mt-3 text-sm text-neutral-500">No AI runs yet.</p>
+          ) : (
+            <UsageTable rows={byTask.map((row) => ({ name: TASK_LABELS[row.task], mono: false, ...row }))} />
+          )}
+        </Card>
+      </div>
+      <p className="mt-2 text-xs text-neutral-500">
+        Estimated from stored token counts at each model&apos;s list price, converted at ₹{usdToInr} per US$.
+        {unpricedModels.length > 0 && ` No price set for ${unpricedModels.join(", ")}.`}
+      </p>
+    </section>
+  );
+}
+
+function UsageTable({
+  rows,
+}: {
+  rows: { name: string; mono: boolean; runs: number; inputTokens: number; outputTokens: number; costInr: number | null }[];
+}) {
+  return (
+    <table className="mt-3 w-full text-sm">
+      <thead className="text-left text-xs text-neutral-500">
+        <tr>
+          <th className="pb-2 font-medium" />
+          <th className="pb-2 text-right font-medium">Runs</th>
+          <th className="pb-2 text-right font-medium">Input</th>
+          <th className="pb-2 text-right font-medium">Output</th>
+          <th className="pb-2 text-right font-medium">Cost</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-neutral-100">
+        {rows.map((row) => (
+          <tr key={row.name}>
+            <td className={`py-2 ${row.mono ? "font-mono text-xs" : ""}`}>{row.name}</td>
+            <td className="py-2 text-right tabular-nums">{formatCount(row.runs)}</td>
+            <td className="py-2 text-right tabular-nums">{formatCount(row.inputTokens)}</td>
+            <td className="py-2 text-right tabular-nums">{formatCount(row.outputTokens)}</td>
+            <td className="py-2 text-right tabular-nums">{row.costInr === null ? <Dash /> : formatCostInr(row.costInr)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function AiQualitySection({ stats }: { stats: AdminStats }) {
+  const { avgConfidence, classified, overridden, drafts, recentFlagged } = stats.quality;
+  return (
+    <section>
+      <SectionTitle>AI quality</SectionTitle>
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <Label>Average confidence</Label>
+          <Big>{avgConfidence === null ? <Dash /> : formatPercent(avgConfidence)}</Big>
+          <p className="mt-1 text-sm text-neutral-600">across {classified} classified tickets</p>
+        </Card>
+        <Card>
+          <Label>Overridden by an admin</Label>
+          <Big>{overridden.rate === null ? <Dash /> : formatPercent(overridden.rate)}</Big>
+          <p className="mt-1 text-sm text-neutral-600">
+            {overridden.either} of {classified} · {overridden.category} category, {overridden.priority} priority
+          </p>
+        </Card>
+        <Card>
+          <Label>Drafts flagged</Label>
+          <Big>{drafts.rate === null ? <Dash /> : formatPercent(drafts.rate)}</Big>
+          <p className="mt-1 text-sm text-neutral-600">
+            {drafts.flagged} of {drafts.total} drafts marked not good enough
+          </p>
+        </Card>
+      </div>
+
+      {recentFlagged.length > 0 && (
+        <Card className="mt-4">
+          <Label>Recently flagged drafts</Label>
+          <ul className="mt-3 divide-y divide-neutral-100">
+            {recentFlagged.map((item) => (
+              <li key={`${item.ticketId}-${item.flaggedAt}`}>
+                <Link
+                  href={`/admin/tickets/${item.ticketId}`}
+                  className="flex items-center gap-3 py-2 text-sm hover:text-emerald-800"
+                >
+                  <Flag className="size-3.5 shrink-0 fill-current text-red-600" aria-hidden />
+                  <span className="min-w-0 flex-1 truncate">
+                    <span className="text-neutral-500">{item.publicId}</span> {item.subject}
+                  </span>
+                  <span className="shrink-0 text-xs text-neutral-500">{formatAge(item.flaggedAt)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
       )}
-    </div>
+    </section>
   );
 }
