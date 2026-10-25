@@ -1,13 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { Card, ErrorState, Field, inputClass, PageHeader } from "@/components/ui";
 import { api, toApiError, type ApiError, type Envelope } from "@/lib/api";
 import { GENERAL_TICKET_LABEL } from "@/lib/format";
 import { AUTHOR_BOOKS_KEY, AUTHOR_TICKETS_KEY } from "@/lib/keys";
 import type { Book, CreatedTicket } from "@/lib/types";
+import { ACCEPT_ATTRIBUTE, checkFile, formatBytes, MAX_FILES, uploadFiles, type UploadResult } from "@/lib/uploads";
 
 // Same bounds the API enforces; checking here saves a round trip.
 const SUBJECT = { min: 5, max: 160 };
@@ -33,8 +35,32 @@ export default function NewTicketPage() {
   const [bookId, setBookId] = useState("");
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
+  // Set when the ticket was created but at least one file did not upload.
+  const [partial, setPartial] = useState<{ ticket: CreatedTicket; results: UploadResult[] } | null>(null);
+
+  function onPickFiles(event: ChangeEvent<HTMLInputElement>) {
+    const picked = Array.from(event.target.files ?? []);
+    event.target.value = "";
+    const next = [...files, ...picked];
+    if (next.length > MAX_FILES) {
+      setFileError(`You can attach up to ${MAX_FILES} files.`);
+      return;
+    }
+    for (const file of picked) {
+      const problem = checkFile(file);
+      if (problem) {
+        setFileError(`${file.name}: ${problem}`);
+        return;
+      }
+    }
+    setFileError(null);
+    setFiles(next);
+  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -51,12 +77,49 @@ export default function NewTicketPage() {
         subject: subject.trim(),
         description: description.trim(),
       });
+      const ticket = response.data.data;
       await mutate(AUTHOR_TICKETS_KEY);
-      router.push(`/author/tickets/${response.data.data.id}`);
+      // Files go up only after the ticket exists, so a failed upload never loses the ticket.
+      const results = files.length > 0 ? await uploadFiles(ticket.id, files) : [];
+      if (results.some((result) => result.error)) {
+        setPartial({ ticket, results });
+        return;
+      }
+      router.push(`/author/tickets/${ticket.id}`);
     } catch (err) {
       setError(toApiError(err));
       setSubmitting(false);
     }
+  }
+
+  if (partial) {
+    return (
+      <>
+        <PageHeader title="Ticket created" description={`${partial.ticket.publicId} · ${partial.ticket.subject}`} />
+        <Card className="max-w-2xl space-y-4">
+          <p className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+            Your ticket was created and the BookLeaf team can see it.
+          </p>
+          <div>
+            <p className="text-sm font-medium">Some files did not upload:</p>
+            <ul className="mt-2 space-y-1 text-sm">
+              {partial.results.map((result) => (
+                <li key={result.file.name} className={result.error ? "text-red-700" : "text-neutral-600"}>
+                  {result.file.name}: {result.error ?? "uploaded"}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-sm text-neutral-500">You can attach them again from the ticket page while it is open.</p>
+          </div>
+          <Link
+            href={`/author/tickets/${partial.ticket.id}`}
+            className="inline-block rounded-md bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800"
+          >
+            View ticket
+          </Link>
+        </Card>
+      </>
+    );
   }
 
   return (
@@ -115,13 +178,61 @@ export default function NewTicketPage() {
             />
           </Field>
 
+          {/* Not a <label>: it holds buttons, and a label click would press the first one. */}
+          <div>
+            <span className="text-sm font-medium">Attachments (optional)</span>
+            <div className="mt-1 space-y-2">
+              {files.map((file) => (
+                <div key={file.name} className="flex items-center justify-between rounded-md border border-neutral-200 px-3 py-2 text-sm">
+                  <span className="truncate">
+                    {file.name} <span className="text-neutral-500">· {formatBytes(file.size)}</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setFiles(files.filter((f) => f !== file))}
+                    className="text-xs text-neutral-500 hover:text-red-700"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+              {files.length < MAX_FILES && (
+                <>
+                  <input
+                    ref={fileInput}
+                    type="file"
+                    accept={ACCEPT_ATTRIBUTE}
+                    multiple
+                    onChange={onPickFiles}
+                    className="sr-only"
+                    aria-label="Choose files to attach"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInput.current?.click()}
+                    className="rounded-md border border-dashed border-neutral-300 px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-50"
+                  >
+                    + Add file
+                  </button>
+                </>
+              )}
+            </div>
+            {fileError ? (
+              <span className="mt-1 block text-xs text-red-600">{fileError}</span>
+            ) : (
+              <span className="mt-1 block text-xs text-neutral-500">
+                Up to {MAX_FILES} files, JPEG, PNG, WebP, or PDF, 2 MB each. Photos of a print defect help.
+              </span>
+            )}
+          </div>
+
           <div className="flex items-center gap-3">
             <button
               type="submit"
               disabled={submitting}
               className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-60"
             >
-              {submitting ? "Submitting…" : "Submit ticket"}
+              {submitting ? (files.length > 0 ? "Submitting and uploading…" : "Submitting…") : "Submit ticket"}
             </button>
             <button
               type="button"

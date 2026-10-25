@@ -9,7 +9,8 @@ export type ErrorCode =
   | "RATE_LIMITED"
   | "INTERNAL"
   | "AI_UNAVAILABLE"
-  | "UPLOAD_FAILED";
+  | "UPLOAD_FAILED"
+  | "UPLOADS_UNAVAILABLE";
 
 export class AppError extends Error {
   readonly statusCode: number;
@@ -56,6 +57,10 @@ export class AppError extends Error {
 
   static conflict(message: string, fields?: Record<string, string>) {
     return new AppError(409, "CONFLICT", message, fields);
+  }
+
+  static payloadTooLarge(message: string) {
+    return new AppError(413, "PAYLOAD_TOO_LARGE", message);
   }
 
   static rateLimited(message = "Too many attempts. Try again later.") {

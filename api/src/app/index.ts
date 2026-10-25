@@ -8,6 +8,7 @@ import { mountAuthRoutes } from "./auth/auth.module.js";
 import { mountBooksRoutes } from "./books/books.module.js";
 import { mountRealtimeRoutes } from "./realtime/realtime.module.js";
 import { mountTicketsRoutes } from "./tickets/tickets.module.js";
+import { mountUploadsRoutes } from "./uploads/uploads.module.js";
 import { errorHandler, notFoundHandler } from "./shared/error-handler.js";
 
 export function createServerApplication(): Application {
@@ -34,6 +35,7 @@ export function createServerApplication(): Application {
   mountAuthRoutes(app);
   mountBooksRoutes(app);
   mountTicketsRoutes(app);
+  mountUploadsRoutes(app);
   mountAdminRoutes(app);
   mountRealtimeRoutes(app);
 

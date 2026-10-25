@@ -16,10 +16,11 @@ export type ApiError = {
 };
 
 // Tokens are HttpOnly cookies: the browser sends them, JS never reads them.
+// No default Content-Type: axios sends JSON for plain objects and lets the
+// browser set the multipart boundary for FormData uploads.
 export const api = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
-  headers: { "Content-Type": "application/json" },
 });
 
 type RetryConfig = InternalAxiosRequestConfig & { _retry?: boolean };

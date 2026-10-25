@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { use } from "react";
+import { use, useRef, useState, type ChangeEvent } from "react";
 import useSWR from "swr";
 import { Badge, Card, EmptyState, ErrorState, PageHeader, Skeleton, StatusPill } from "@/components/ui";
 import { toApiError, type Envelope } from "@/lib/api";
 import { formatAge, formatDateTime, GENERAL_TICKET_LABEL, isInProduction } from "@/lib/format";
 import { authorTicketKey } from "@/lib/keys";
 import type { AuthorTicketDetail } from "@/lib/types";
+import { ACCEPT_ATTRIBUTE, checkFile, formatBytes, MAX_FILES, uploadFiles } from "@/lib/uploads";
 
 export default function AuthorTicketPage({ params }: PageProps<"/author/tickets/[id]">) {
   const { id } = use(params);
@@ -111,23 +112,71 @@ export default function AuthorTicketPage({ params }: PageProps<"/author/tickets/
               <p className="mt-4 text-xs text-neutral-500">Last updated {formatAge(ticket.updatedAt)}</p>
             </Card>
 
-            {ticket.attachments.length > 0 && (
-              <Card>
-                <h2 className="text-xs font-medium uppercase tracking-wide text-neutral-500">Attachments</h2>
-                <ul className="mt-2 space-y-1 text-sm">
-                  {ticket.attachments.map((file) => (
-                    <li key={file.id}>
-                      <a href={file.url} target="_blank" rel="noreferrer" className="text-emerald-700 hover:underline">
-                        {file.name}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </Card>
-            )}
+            <Attachments ticket={ticket} refresh={() => mutate()} />
           </aside>
         </div>
       )}
     </>
+  );
+}
+
+// Files on the ticket, plus an upload control while the ticket is open and
+// below the cap. This is also where a file that failed at create time is retried.
+function Attachments({ ticket, refresh }: { ticket: AuthorTicketDetail; refresh: () => Promise<unknown> }) {
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const canAdd = ticket.status === "open" && ticket.attachments.length < MAX_FILES;
+
+  if (ticket.attachments.length === 0 && !canAdd) return null;
+
+  async function onPick(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    const problem = checkFile(file);
+    if (problem) {
+      setError(problem);
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    const [result] = await uploadFiles(ticket.id, [file]);
+    setBusy(false);
+    if (result?.error) setError(result.error);
+    await refresh();
+  }
+
+  return (
+    <Card>
+      <h2 className="text-xs font-medium uppercase tracking-wide text-neutral-500">Attachments</h2>
+      {ticket.attachments.length > 0 && (
+        <ul className="mt-2 space-y-1 text-sm">
+          {ticket.attachments.map((file) => (
+            <li key={file.id} className="flex justify-between gap-2">
+              <a href={file.url} target="_blank" rel="noreferrer" className="truncate text-emerald-700 hover:underline">
+                {file.name}
+              </a>
+              <span className="shrink-0 text-xs text-neutral-500">{formatBytes(file.sizeBytes)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {canAdd && (
+        <div className="mt-3">
+          <input ref={input} type="file" accept={ACCEPT_ATTRIBUTE} onChange={(e) => void onPick(e)} className="sr-only" aria-label="Choose a file to attach" />
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => input.current?.click()}
+            className="rounded-md border border-dashed border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 hover:bg-neutral-50 disabled:opacity-60"
+          >
+            {busy ? "Uploading…" : "+ Add file"}
+          </button>
+          <p className="mt-1 text-xs text-neutral-500">JPEG, PNG, WebP, or PDF, 2 MB each, up to {MAX_FILES}.</p>
+        </div>
+      )}
+      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+    </Card>
   );
 }
