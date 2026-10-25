@@ -56,7 +56,7 @@ export function Composer({ ticket, refresh }: { ticket: AdminTicketDetail; refre
     <section>
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-semibold text-neutral-700">Reply to the author</h2>
-        <DraftStatus state={ticket.draftState} />
+        <DraftStatus state={ticket.draftState} aiState={ticket.aiState} />
       </div>
       <div className="rounded-xl border border-neutral-200 bg-white p-4">
         {sent && !text && (
@@ -72,7 +72,8 @@ export function Composer({ ticket, refresh }: { ticket: AdminTicketDetail; refre
           }}
           rows={10}
           placeholder={
-            ticket.draftState === "pending"
+            ticket.draftState === "pending" ||
+            (ticket.draftState === "none" && (ticket.aiState === "pending" || ticket.aiState === "processing"))
               ? "The AI draft will appear here. You can also start typing."
               : "Write your reply to the author."
           }
@@ -126,7 +127,17 @@ export function Composer({ ticket, refresh }: { ticket: AdminTicketDetail; refre
   );
 }
 
-function DraftStatus({ state }: { state: AdminTicketDetail["draftState"] }) {
+function DraftStatus({
+  state,
+  aiState,
+}: {
+  state: AdminTicketDetail["draftState"];
+  aiState: AdminTicketDetail["aiState"];
+}) {
+  // The API starts the draft only after triage, so it uses the ticket's category.
+  if (state === "none" && (aiState === "pending" || aiState === "processing")) {
+    return <span className="animate-pulse text-xs text-neutral-500">Waiting for triage before drafting…</span>;
+  }
   if (state === "pending") {
     return <span className="animate-pulse text-xs text-neutral-500">Drafting a reply with AI…</span>;
   }

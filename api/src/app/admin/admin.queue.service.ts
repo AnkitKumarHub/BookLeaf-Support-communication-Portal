@@ -1,4 +1,4 @@
-import { and, asc, count, eq, gte, lte, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, eq, gte, inArray, lte, sql, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "../../db/index.js";
 import {
@@ -162,7 +162,16 @@ export async function getAdminTicket(
   const [claimed] = await db
     .update(tickets)
     .set({ draftState: "pending", updatedAt: new Date() })
-    .where(and(eq(tickets.id, ticketId), eq(tickets.draftState, "none")))
+    // Start the draft only once triage has finished, so it is written with the
+    // ticket's category. Until then the admin page shows a waiting state, and
+    // the stream refetch after triage repeats this read and starts it.
+    .where(
+      and(
+        eq(tickets.id, ticketId),
+        eq(tickets.draftState, "none"),
+        inArray(tickets.aiState, ["completed", "failed"]),
+      ),
+    )
     .returning({
       updatedAt: tickets.updatedAt,
       aiJobVersion: tickets.aiJobVersion,
