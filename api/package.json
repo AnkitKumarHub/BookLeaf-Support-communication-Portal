@@ -10,7 +10,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx src/db/seed.ts",
-    "db:reset": "tsx src/db/reset.ts",
+    "db:reset --yes": "tsx src/db/reset.ts",
     "db:seed-demo-tickets": "tsx src/db/seed-demo-tickets.ts"
   },
   "keywords": [],

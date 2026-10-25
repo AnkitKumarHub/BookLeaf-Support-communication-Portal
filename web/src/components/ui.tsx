@@ -1,5 +1,6 @@
 "use client";
 
+import { RefreshCw } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { CATEGORY_LABELS, EM_DASH, formatMoney, PRIORITY_LABELS, TICKET_STATUS_LABELS } from "@/lib/format";
@@ -135,9 +136,11 @@ export function PageHeader({
             type="button"
             onClick={onRefresh}
             disabled={refreshing}
-            className="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-100 disabled:opacity-60"
+            aria-label={refreshing ? "Refreshing" : "Refresh"}
+            title="Refresh"
+            className="rounded-md border border-neutral-300 bg-white p-2 text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 disabled:opacity-60"
           >
-            {refreshing ? "Refreshing…" : "Refresh"}
+            <RefreshCw className={`size-4 ${refreshing ? "animate-spin" : ""}`} aria-hidden />
           </button>
         )}
         {actions}

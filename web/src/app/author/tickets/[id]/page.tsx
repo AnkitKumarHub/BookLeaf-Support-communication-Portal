@@ -1,14 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { use, useRef, useState, type ChangeEvent } from "react";
+import { use, useState } from "react";
 import useSWR from "swr";
 import { Badge, Card, EmptyState, ErrorState, PageHeader, Skeleton, StatusPill } from "@/components/ui";
 import { toApiError, type Envelope } from "@/lib/api";
 import { formatAge, formatDateTime, GENERAL_TICKET_LABEL, isInProduction } from "@/lib/format";
 import { authorTicketKey } from "@/lib/keys";
 import type { AuthorTicketDetail } from "@/lib/types";
-import { ACCEPT_ATTRIBUTE, checkFile, formatBytes, MAX_FILES, uploadFiles } from "@/lib/uploads";
+import { FileDropzone } from "@/components/file-dropzone";
+import { checkFile, formatBytes, MAX_FILES, uploadFiles } from "@/lib/uploads";
 
 export default function AuthorTicketPage({ params }: PageProps<"/author/tickets/[id]">) {
   const { id } = use(params);
@@ -123,16 +124,13 @@ export default function AuthorTicketPage({ params }: PageProps<"/author/tickets/
 // Files on the ticket, plus an upload control while the ticket is open and
 // below the cap. This is also where a file that failed at create time is retried.
 function Attachments({ ticket, refresh }: { ticket: AuthorTicketDetail; refresh: () => Promise<unknown> }) {
-  const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const canAdd = ticket.status === "open" && ticket.attachments.length < MAX_FILES;
 
   if (ticket.attachments.length === 0 && !canAdd) return null;
 
-  async function onPick(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
+  async function onFiles([file]: File[]) {
     if (!file) return;
     const problem = checkFile(file);
     if (problem) {
@@ -164,16 +162,12 @@ function Attachments({ ticket, refresh }: { ticket: AuthorTicketDetail; refresh:
       )}
       {canAdd && (
         <div className="mt-3">
-          <input ref={input} type="file" accept={ACCEPT_ATTRIBUTE} onChange={(e) => void onPick(e)} className="sr-only" aria-label="Choose a file to attach" />
-          <button
-            type="button"
+          <FileDropzone
+            onFiles={(files) => void onFiles(files)}
             disabled={busy}
-            onClick={() => input.current?.click()}
-            className="rounded-md border border-dashed border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 hover:bg-neutral-50 disabled:opacity-60"
-          >
-            {busy ? "Uploading…" : "+ Add file"}
-          </button>
-          <p className="mt-1 text-xs text-neutral-500">JPEG, PNG, WebP, or PDF, 2 MB each, up to {MAX_FILES}.</p>
+            label={busy ? "Uploading…" : "Drop a file"}
+            hint={`JPEG, PNG, WebP, or PDF · 2 MB · up to ${MAX_FILES}`}
+          />
         </div>
       )}
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}

@@ -2,15 +2,17 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { FileText, X } from "lucide-react";
+import { useState, type FormEvent } from "react";
 import useSWR, { useSWRConfig } from "swr";
+import { FileDropzone } from "@/components/file-dropzone";
 import { Modal } from "@/components/modal";
 import { buttonClass, ErrorState, Field, inputClass, primaryButtonClass } from "@/components/ui";
 import { api, toApiError, type ApiError, type Envelope } from "@/lib/api";
 import { GENERAL_TICKET_LABEL } from "@/lib/format";
 import { AUTHOR_BOOKS_KEY, AUTHOR_TICKETS_KEY } from "@/lib/keys";
 import type { Book, CreatedTicket } from "@/lib/types";
-import { ACCEPT_ATTRIBUTE, checkFile, formatBytes, MAX_FILES, uploadFiles, type UploadResult } from "@/lib/uploads";
+import { checkFile, formatBytes, MAX_FILES, uploadFiles, type UploadResult } from "@/lib/uploads";
 
 // Same bounds the API enforces; checking here saves a round trip.
 const SUBJECT = { min: 5, max: 160 };
@@ -69,7 +71,6 @@ function NewTicketForm({ onBusyChange, onClose }: { onBusyChange: (busy: boolean
   const [description, setDescription] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [fileError, setFileError] = useState<string | null>(null);
-  const fileInput = useRef<HTMLInputElement>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   // Set when the ticket was created but at least one file did not upload.
@@ -80,9 +81,8 @@ function NewTicketForm({ onBusyChange, onClose }: { onBusyChange: (busy: boolean
     onBusyChange(value);
   }
 
-  function onPickFiles(event: ChangeEvent<HTMLInputElement>) {
-    const picked = Array.from(event.target.files ?? []);
-    event.target.value = "";
+  // Dropped or browsed files: checked here, uploaded only after the ticket exists.
+  function addFiles(picked: File[]) {
     const next = [...files, ...picked];
     if (next.length > MAX_FILES) {
       setFileError(`You can attach up to ${MAX_FILES} files.`);
@@ -205,46 +205,34 @@ function NewTicketForm({ onBusyChange, onClose }: { onBusyChange: (busy: boolean
         <span className="text-sm font-medium">Attachments (optional)</span>
         <div className="mt-1 space-y-2">
           {files.map((file) => (
-            <div key={file.name} className="flex items-center justify-between rounded-md border border-neutral-200 px-3 py-2 text-sm">
-              <span className="truncate">
+            <div key={file.name} className="flex items-center gap-2 rounded-md border border-neutral-200 px-3 py-2 text-sm">
+              <FileText className="size-4 shrink-0 text-neutral-500" aria-hidden />
+              <span className="min-w-0 flex-1 truncate">
                 {file.name} <span className="text-neutral-500">· {formatBytes(file.size)}</span>
               </span>
               <button
                 type="button"
                 onClick={() => setFiles(files.filter((f) => f !== file))}
-                className="text-xs text-neutral-500 hover:text-red-700"
+                aria-label={`Remove ${file.name}`}
+                className="rounded p-0.5 text-neutral-500 hover:bg-neutral-100 hover:text-red-700"
               >
-                Remove
+                <X className="size-4" aria-hidden />
               </button>
             </div>
           ))}
           {files.length < MAX_FILES && (
-            <>
-              <input
-                ref={fileInput}
-                type="file"
-                accept={ACCEPT_ATTRIBUTE}
-                multiple
-                onChange={onPickFiles}
-                className="sr-only"
-                aria-label="Choose files to attach"
-              />
-              <button
-                type="button"
-                onClick={() => fileInput.current?.click()}
-                className="rounded-md border border-dashed border-neutral-300 px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-50"
-              >
-                + Add file
-              </button>
-            </>
+            <FileDropzone
+              multiple
+              onFiles={addFiles}
+              label="Drag photos or PDFs here"
+              hint={`Up to ${MAX_FILES} files · JPEG, PNG, WebP, or PDF · 2 MB each`}
+            />
           )}
         </div>
         {fileError ? (
           <span className="mt-1 block text-xs text-red-600">{fileError}</span>
         ) : (
-          <span className="mt-1 block text-xs text-neutral-500">
-            Up to {MAX_FILES} files, JPEG, PNG, WebP, or PDF, 2 MB each. Photos of a print defect help.
-          </span>
+          <span className="mt-1 block text-xs text-neutral-500">Photos of a print defect help the team verify it.</span>
         )}
       </div>
 

@@ -76,6 +76,7 @@ export function AddBookButton() {
         open={open}
         onClose={() => setOpen(false)}
         busy={busy}
+        size="lg"
         title="Add a book"
         description="For trying the portal. Leave a field blank if it does not apply yet."
       >
@@ -140,11 +141,11 @@ function AddBookForm({ onBusyChange, onClose }: { onBusyChange: (busy: boolean) 
   );
 
   return (
-    <form onSubmit={onSubmit} noValidate className="space-y-6">
+    <form onSubmit={onSubmit} noValidate className="space-y-5">
       {error && !Object.keys(error.fields).length && <ErrorState message={error.message} />}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="sm:col-span-2">{text("title", "Title", { required: true, autoFocus: true })}</div>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="sm:col-span-3">{text("title", "Title", { required: true, autoFocus: true })}</div>
         <Field label="Status" error={error?.fields.status}>
           <select value={form.status} onChange={(e) => set("status")(e.target.value)} className={inputClass}>
             {STATUSES.map((status) => (
@@ -160,7 +161,7 @@ function AddBookForm({ onBusyChange, onClose }: { onBusyChange: (busy: boolean) 
       </div>
 
       <div>
-        <h3 className="mb-3 text-sm font-semibold text-neutral-700">Royalties</h3>
+        <h3 className="mb-2 text-sm font-semibold text-neutral-700">Royalties</h3>
         <div className="grid gap-4 sm:grid-cols-3">
           {MONEY_FIELDS.map(([key, label]) => (
             <div key={key}>{text(key, label, { type: "number", min: 0, step: "0.01", inputMode: "decimal" })}</div>

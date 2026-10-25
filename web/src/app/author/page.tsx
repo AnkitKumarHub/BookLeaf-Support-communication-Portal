@@ -1,6 +1,8 @@
 "use client";
 
+import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import useSWR from "swr";
 import { Card, ErrorState, Money, PageHeader, Skeleton, StatusPill } from "@/components/ui";
 import type { Envelope } from "@/lib/api";
@@ -47,24 +49,36 @@ export default function AuthorOverviewPage() {
   );
 }
 
-function StatLabel({ children }: { children: React.ReactNode }) {
+function StatLabel({ children }: { children: ReactNode }) {
   return <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">{children}</p>;
+}
+
+// A whole card that opens a page: the entire box is the link.
+function LinkCard({ href, label, children }: { href: string; label: string; children: ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="group block rounded-xl border border-neutral-200 bg-white p-5 transition hover:border-emerald-500 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-emerald-600"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <StatLabel>{label}</StatLabel>
+        <ArrowUpRight className="size-4 text-neutral-400 transition group-hover:text-emerald-700" aria-hidden />
+      </div>
+      {children}
+    </Link>
+  );
 }
 
 function BooksCard({ books }: { books: Book[] | undefined }) {
   if (!books) return <CardSkeleton />;
   const inProduction = books.filter((book) => isInProduction(book.status)).length;
   return (
-    <Card>
-      <StatLabel>Books</StatLabel>
+    <LinkCard href="/author/books" label="Books">
       <p className="mt-2 text-3xl font-semibold tabular-nums">{books.length}</p>
       <p className="mt-1 text-sm text-neutral-600">
         {books.length - inProduction} published · {inProduction} in production
       </p>
-      <Link href="/author/books" className="mt-3 inline-block text-sm font-medium text-emerald-700 hover:underline">
-        View my books
-      </Link>
-    </Card>
+    </LinkCard>
   );
 }
 
@@ -97,8 +111,7 @@ function RoyaltyCard({ books }: { books: Book[] | undefined }) {
 function TicketsCard({ tickets }: { tickets: AuthorTicketRow[] | undefined }) {
   if (!tickets) return <CardSkeleton />;
   return (
-    <Card>
-      <StatLabel>Support tickets</StatLabel>
+    <LinkCard href="/author/tickets" label="Support tickets">
       <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2">
         {TICKET_STATUSES.map((status) => (
           <div key={status}>
@@ -109,10 +122,7 @@ function TicketsCard({ tickets }: { tickets: AuthorTicketRow[] | undefined }) {
           </div>
         ))}
       </dl>
-      <Link href="/author/tickets" className="mt-3 inline-block text-sm font-medium text-emerald-700 hover:underline">
-        View my tickets
-      </Link>
-    </Card>
+    </LinkCard>
   );
 }
 
