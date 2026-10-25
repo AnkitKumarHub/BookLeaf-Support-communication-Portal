@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import useSWR from "swr";
-import { ButtonLink, Card, ErrorState, Money, PageHeader, Skeleton, StatusPill } from "@/components/ui";
+import { Card, ErrorState, Money, PageHeader, Skeleton, StatusPill } from "@/components/ui";
 import type { Envelope } from "@/lib/api";
 import { useMe } from "@/lib/auth";
 import { formatAge, GENERAL_TICKET_LABEL, isInProduction, sumMoney, TICKET_STATUSES, TICKET_STATUS_LABELS } from "@/lib/format";
 import { AUTHOR_BOOKS_KEY, AUTHOR_TICKETS_KEY } from "@/lib/keys";
 import type { AuthorTicketRow, Book } from "@/lib/types";
+import { NewTicketButton } from "@/components/new-ticket-dialog";
 
 export default function AuthorOverviewPage() {
   const { me } = useMe();
@@ -26,7 +27,7 @@ export default function AuthorOverviewPage() {
         description="Your books, royalties, and support requests at a glance."
         onRefresh={refresh}
         refreshing={books.isValidating || tickets.isValidating}
-        actions={<ButtonLink href="/author/tickets/new">New ticket</ButtonLink>}
+        actions={<NewTicketButton />}
       />
 
       {(books.error || tickets.error) && (
@@ -133,9 +134,7 @@ function RecentTickets({ tickets }: { tickets: AuthorTicketRow[] | undefined }) 
         <Card>
           <p className="text-sm text-neutral-600">
             No tickets yet. Questions about royalties, ISBNs, printing, or your book&apos;s status?{" "}
-            <Link href="/author/tickets/new" className="font-medium text-emerald-700 hover:underline">
-              Raise a ticket
-            </Link>
+            <NewTicketButton variant="link" label="Raise a ticket" />
             .
           </p>
         </Card>

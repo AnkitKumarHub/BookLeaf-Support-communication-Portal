@@ -4,9 +4,11 @@ import { useState } from "react";
 import useSWR from "swr";
 import { Badge, Card, Dash, EmptyState, ErrorState, Money, PageHeader, Skeleton, Text } from "@/components/ui";
 import type { Envelope } from "@/lib/api";
+import { DEMO_SELF_SERVICE } from "@/lib/flags";
 import { formatDate, isInProduction } from "@/lib/format";
 import { AUTHOR_BOOKS_KEY } from "@/lib/keys";
 import type { Book } from "@/lib/types";
+import { AddBookButton } from "@/components/add-book-dialog";
 
 type Filter = "all" | "published" | "production";
 
@@ -33,6 +35,7 @@ export default function MyBooksPage() {
         description="Figures are as recorded by BookLeaf. Royalties are 80% of net profit, paid quarterly."
         onRefresh={() => void mutate()}
         refreshing={isValidating}
+        actions={DEMO_SELF_SERVICE && <AddBookButton />}
       />
 
       <div className="mb-4 flex gap-1" role="tablist" aria-label="Filter books">

@@ -41,10 +41,13 @@ function refreshSession(): Promise<void> {
   return refreshing;
 }
 
+// Pages a signed-out visitor may stay on.
+const PUBLIC_PATHS = ["/login", "/signup"];
+
 // A full page load on purpose: this runs outside React, and an expired session
 // should drop every in-memory cache.
 function goToLogin() {
-  if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+  if (typeof window !== "undefined" && !PUBLIC_PATHS.includes(window.location.pathname)) {
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.assign("/login");
   }

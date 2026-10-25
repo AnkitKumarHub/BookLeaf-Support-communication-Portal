@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { and, asc, count, eq, sql, type SQL } from "drizzle-orm";
 import { books } from "../../db/schema.js";
 import { db } from "../../db/index.js";
@@ -168,4 +169,53 @@ function asCount(value: unknown): number {
   if (typeof value === "bigint") return Number(value);
   if (typeof value === "string" && /^\d+$/.test(value)) return Number(value);
   return 0;
+}
+
+function moneyText(value: number | null | undefined): string | null {
+  return value === null || value === undefined ? null : value.toFixed(2);
+}
+
+// Demo self-service only (DEMO_SELF_SERVICE=true).
+export async function addBook(
+  authorId: string,
+  input: {
+    title: string;
+    status: string;
+    isbn?: string | undefined;
+    genre?: string | undefined;
+    publicationDate?: string | null | undefined;
+    mrp?: number | null | undefined;
+    royaltyPerCopy?: number | null | undefined;
+    totalCopiesSold: number;
+    totalRoyaltyEarned?: number | null | undefined;
+    royaltyPaid?: number | null | undefined;
+    royaltyPending?: number | null | undefined;
+    lastRoyaltyPayoutDate?: string | null | undefined;
+    printPartner?: string | undefined;
+    availableOn: string[];
+  },
+): Promise<BookJson> {
+  const [row] = await db
+    .insert(books)
+    .values({
+      sourceId: `BK-U${randomUUID().slice(0, 6).toUpperCase()}`,
+      authorId,
+      title: input.title,
+      status: input.status,
+      isbn: input.isbn || null,
+      genre: input.genre || null,
+      publicationDate: input.publicationDate ?? null,
+      mrp: moneyText(input.mrp),
+      royaltyPerCopy: moneyText(input.royaltyPerCopy),
+      totalCopiesSold: input.totalCopiesSold,
+      totalRoyaltyEarned: moneyText(input.totalRoyaltyEarned),
+      royaltyPaid: moneyText(input.royaltyPaid),
+      royaltyPending: moneyText(input.royaltyPending),
+      lastRoyaltyPayoutDate: input.lastRoyaltyPayoutDate ?? null,
+      printPartner: input.printPartner || null,
+      availableOn: input.availableOn,
+    })
+    .returning(bookColumns);
+  if (!row) throw AppError.internal();
+  return toBookJson(row);
 }

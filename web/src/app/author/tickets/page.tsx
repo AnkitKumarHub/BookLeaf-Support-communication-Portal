@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { useState } from "react";
 import useSWR from "swr";
-import { ButtonLink, EmptyState, ErrorState, PageHeader, Skeleton, StatusPill } from "@/components/ui";
+import { EmptyState, ErrorState, PageHeader, Skeleton, StatusPill } from "@/components/ui";
 import type { Envelope } from "@/lib/api";
 import { formatAge, GENERAL_TICKET_LABEL, TICKET_STATUSES, TICKET_STATUS_LABELS } from "@/lib/format";
 import { AUTHOR_TICKETS_KEY } from "@/lib/keys";
 import type { AuthorTicketRow, TicketStatus } from "@/lib/types";
+import { NewTicketButton } from "@/components/new-ticket-dialog";
 
 export default function MyTicketsPage() {
   // One request for all tickets (shared with the overview); filtering is local.
@@ -24,7 +25,7 @@ export default function MyTicketsPage() {
         description="Replies from the BookLeaf team appear here as soon as they are sent."
         onRefresh={() => void mutate()}
         refreshing={isValidating}
-        actions={<ButtonLink href="/author/tickets/new">New ticket</ButtonLink>}
+        actions={<NewTicketButton />}
       />
 
       <div className="mb-4 flex flex-wrap gap-1" role="tablist" aria-label="Filter by status">
@@ -61,9 +62,7 @@ export default function MyTicketsPage() {
       {tickets && tickets.length === 0 && (
         <EmptyState title={status === "all" ? "You have not raised any tickets" : "No tickets with this status"}>
           {status === "all" && (
-            <Link href="/author/tickets/new" className="font-medium text-emerald-700 hover:underline">
-              Raise your first ticket
-            </Link>
+            <NewTicketButton variant="link" label="Raise your first ticket" />
           )}
         </EmptyState>
       )}

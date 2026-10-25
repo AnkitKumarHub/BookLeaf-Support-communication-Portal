@@ -1,7 +1,15 @@
 import { Router, type Router as ExpressRouter } from "express";
 import { defineRoutes } from "../../openapi/define-route.js";
-import { loginController, logoutController, meController, refreshController } from "./auth.controller.js";
-import { identity, loginBody, okResult } from "./auth.schemas.js";
+import {
+  demoLoginController,
+  loginController,
+  logoutController,
+  meController,
+  refreshController,
+  signupController,
+} from "./auth.controller.js";
+import { demoLoginBody, identity, loginBody, okResult, signupBody } from "./auth.schemas.js";
+import { demoLoginsEnabled, selfServiceEnabled } from "../shared/flags.js";
 import { loginRateLimit } from "./login-rate-limit.js";
 
 export function createAuthRouter(): ExpressRouter {
@@ -50,6 +58,38 @@ export function createAuthRouter(): ExpressRouter {
     responses: { 200: { description: "Current user.", schema: identity } },
     handler: meController,
   });
+
+  if (selfServiceEnabled()) {
+    route.post("/auth/signup", {
+      summary: "Create an author account (demo)",
+      description:
+        "Demo only, enabled by `DEMO_SELF_SERVICE=true`. Creates an author with no books and signs in (sets both cookies). Rate limited with login.",
+      access: "public",
+      middlewares: [loginRateLimit],
+      body: signupBody,
+      responses: {
+        201: { description: "Created and signed in.", schema: identity },
+        409: "An account with this email already exists.",
+        429: "Too many attempts from this IP.",
+      },
+      handler: signupController,
+    });
+  }
+
+  if (demoLoginsEnabled()) {
+    route.post("/auth/demo-login", {
+      summary: "One-click demo sign-in",
+      description:
+        "Demo only, enabled by `DEMO_LOGINS=true`. Signs in as a seeded account without a password: `priya` (author, ₹0.00 pending on one book), `sneha` (author, a book in production), or `admin`.",
+      access: "public",
+      body: demoLoginBody,
+      responses: {
+        200: { description: "Signed in.", schema: identity },
+        404: "The demo account is not seeded.",
+      },
+      handler: demoLoginController,
+    });
+  }
 
   return router;
 }

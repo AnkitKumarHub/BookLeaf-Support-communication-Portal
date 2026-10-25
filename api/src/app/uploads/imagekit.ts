@@ -43,3 +43,19 @@ export async function deleteFromImageKit(fileId: string): Promise<void> {
     console.error("imagekit delete failed", { fileId });
   }
 }
+
+// Used by the db:reset script. Every upload lives under this folder.
+export const UPLOAD_ROOT_FOLDER = "/bookleaf";
+
+export async function deleteUploadFolder(): Promise<"deleted" | "empty" | "not-configured"> {
+  const ik = getClient();
+  if (!ik) return "not-configured";
+  try {
+    await ik.deleteFolder(UPLOAD_ROOT_FOLDER);
+    return "deleted";
+  } catch (err) {
+    // ImageKit answers 404 when the folder does not exist yet.
+    if ((err as { $ResponseMetadata?: { statusCode?: number } }).$ResponseMetadata?.statusCode === 404) return "empty";
+    throw err;
+  }
+}

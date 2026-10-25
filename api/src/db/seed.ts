@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import bcrypt from "bcryptjs";
 import { count, eq } from "drizzle-orm";
 import { loadSeedEnv } from "../env.js";
@@ -51,7 +51,8 @@ function money(value: number | null): string | null {
   return value.toFixed(2);
 }
 
-async function main() {
+// Upserts the company sample data and the demo logins. Safe to run twice.
+export async function seedSampleData() {
   loadSeedEnv();
   const authorPasswordHash = await bcrypt.hash(
     process.env.SEED_AUTHOR_PASSWORD!,
@@ -210,9 +211,12 @@ async function main() {
   );
 }
 
-main()
-  .catch((err) => {
-    console.error(err);
-    process.exitCode = 1;
-  })
-  .finally(() => closeDb());
+// Run only when executed directly (`pnpm db:seed`), not when imported by reset.ts.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  seedSampleData()
+    .catch((err) => {
+      console.error(err);
+      process.exitCode = 1;
+    })
+    .finally(() => closeDb());
+}

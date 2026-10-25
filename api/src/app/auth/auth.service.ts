@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
-import { and, eq, isNull, gt } from "drizzle-orm";
+import { and, eq, isNull, gt, sql } from "drizzle-orm";
 import type { Response } from "express";
 import { db } from "../../db/index.js";
 import { admins, authors, refreshTokens, users } from "../../db/schema.js";
@@ -13,6 +13,7 @@ import {
   REFRESH_COOKIE_NAME,
 } from "./auth.constants.js";
 import type { PublicIdentity } from "./auth.types.js";
+import { DEMO_ACCOUNTS, type DemoAccount } from "./demo-accounts.js";
 
 const INVALID_LOGIN = "Invalid email or password.";
 
@@ -198,4 +199,67 @@ export async function getIdentity(userId: string): Promise<PublicIdentity> {
     role: user.role,
     authorId: user.authorId,
   };
+}
+
+type SessionResult = { identity: PublicIdentity; accessToken: string; refreshToken: string };
+
+// Demo self-service: creates an author profile (no books yet) and its login,
+// then signs in. Only reachable when DEMO_SELF_SERVICE=true.
+export async function signup(input: {
+  name: string;
+  email: string;
+  password: string;
+  phone?: string | undefined;
+  city?: string | undefined;
+}): Promise<SessionResult> {
+  const email = input.email.trim().toLowerCase();
+  const [taken] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(sql`lower(${users.email}) = ${email}`)
+    .limit(1);
+  if (taken) {
+    throw AppError.conflict("An account with this email already exists.", {
+      email: "An account with this email already exists.",
+    });
+  }
+  const passwordHash = await bcrypt.hash(input.password, 12);
+
+  const user = await db.transaction(async (tx) => {
+    const [author] = await tx
+      .insert(authors)
+      .values({
+        sourceId: `SIGNUP-${randomUUID().slice(0, 8).toUpperCase()}`,
+        name: input.name,
+        email,
+        phone: input.phone || null,
+        city: input.city || null,
+        joinedDate: new Date().toISOString().slice(0, 10),
+      })
+      .returning({ id: authors.id });
+    if (!author) throw AppError.internal();
+    const [created] = await tx
+      .insert(users)
+      .values({ email, passwordHash, role: "author", authorId: author.id })
+      .returning({ id: users.id, role: users.role, authorId: users.authorId });
+    if (!created) throw AppError.internal();
+    return created;
+  });
+
+  const tokens = await issueTokenPair(user);
+  return { identity: await getIdentity(user.id), ...tokens };
+}
+
+// One-click sign-in for the demo buttons. Only reachable when DEMO_LOGINS=true.
+export async function demoLogin(account: DemoAccount): Promise<SessionResult> {
+  const [user] = await db
+    .select({ id: users.id, role: users.role, authorId: users.authorId, disabledAt: users.disabledAt })
+    .from(users)
+    .where(eq(users.email, DEMO_ACCOUNTS[account]))
+    .limit(1);
+  if (!user || user.disabledAt) {
+    throw AppError.notFound("That demo account is not seeded. Run pnpm db:reset.");
+  }
+  const tokens = await issueTokenPair(user);
+  return { identity: await getIdentity(user.id), ...tokens };
 }

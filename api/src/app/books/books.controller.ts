@@ -3,8 +3,8 @@ import type { z } from "zod";
 import type { ValidRequest } from "../../openapi/define-route.js";
 import { requestAuthor } from "../auth/auth.middleware.js";
 import { sendData } from "../shared/envelope.js";
-import type { bookParams, listBooksQuery } from "./books.schemas.js";
-import { getBook, listBooks } from "./books.service.js";
+import type { addBookBody, bookParams, listBooksQuery } from "./books.schemas.js";
+import { addBook, getBook, listBooks } from "./books.service.js";
 
 export async function listBooksController(
   req: ValidRequest<{ query: z.output<typeof listBooksQuery> }>,
@@ -22,4 +22,12 @@ export async function getBookController(
 ) {
   const { authorId } = requestAuthor(req);
   sendData(res, await getBook(authorId, req.valid.params.bookId));
+}
+
+export async function addBookController(
+  req: ValidRequest<{ body: z.output<typeof addBookBody> }>,
+  res: Response,
+) {
+  const { authorId } = requestAuthor(req);
+  sendData(res, await addBook(authorId, req.valid.body), 201);
 }

@@ -1,14 +1,22 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { toApiError, type ApiError } from "@/lib/api";
 import { homeFor, useAuthActions, useMe } from "@/lib/auth";
+import { DEMO_LOGINS, DEMO_SELF_SERVICE } from "@/lib/flags";
+
+const DEMO_BUTTONS = [
+  { account: "priya", label: "Author: Priya Sharma", hint: "2 books, one with ₹0.00 pending" },
+  { account: "sneha", label: "Author: Sneha Kulkarni", hint: "3 books, one in production" },
+  { account: "admin", label: "Admin: BookLeaf Admin", hint: "Ticket queue, AI triage, drafts" },
+] as const;
 
 export default function LoginPage() {
   const router = useRouter();
   const { me } = useMe();
-  const { login } = useAuthActions();
+  const { login, demoLogin } = useAuthActions();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -18,6 +26,18 @@ export default function LoginPage() {
   useEffect(() => {
     if (me) router.replace(homeFor(me.role));
   }, [me, router]);
+
+  async function onDemo(account: (typeof DEMO_BUTTONS)[number]["account"]) {
+    setSubmitting(true);
+    setError(null);
+    try {
+      const identity = await demoLogin(account);
+      router.replace(homeFor(identity.role));
+    } catch (err) {
+      setError(toApiError(err));
+      setSubmitting(false);
+    }
+  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -90,6 +110,35 @@ export default function LoginPage() {
             {submitting ? "Signing in…" : "Sign in"}
           </button>
         </form>
+
+        {DEMO_SELF_SERVICE && (
+          <p className="mt-4 text-center text-sm text-neutral-600">
+            New author?{" "}
+            <Link href="/signup" className="font-medium text-emerald-700 hover:underline">
+              Create an account
+            </Link>
+          </p>
+        )}
+
+        {DEMO_LOGINS && (
+          <div className="mt-6 rounded-xl border border-dashed border-neutral-300 bg-white p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Try the demo</p>
+            <div className="mt-3 space-y-2">
+              {DEMO_BUTTONS.map((demo) => (
+                <button
+                  key={demo.account}
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => void onDemo(demo.account)}
+                  className="block w-full rounded-md border border-neutral-200 px-3 py-2 text-left hover:border-emerald-600 hover:bg-emerald-50 disabled:opacity-50"
+                >
+                  <span className="block text-sm font-medium">{demo.label}</span>
+                  <span className="block text-xs text-neutral-500">{demo.hint}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );

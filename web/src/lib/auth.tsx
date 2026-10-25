@@ -40,6 +40,24 @@ export function useAuthActions() {
     return response.data.data;
   }
 
+  async function signup(input: {
+    name: string;
+    email: string;
+    password: string;
+    phone?: string;
+    city?: string;
+  }): Promise<Identity> {
+    const response = await api.post<Envelope<Identity>>("/auth/signup", input);
+    await mutate(ME_KEY, response.data, { revalidate: false });
+    return response.data.data;
+  }
+
+  async function demoLogin(account: "priya" | "sneha" | "admin"): Promise<Identity> {
+    const response = await api.post<Envelope<Identity>>("/auth/demo-login", { account });
+    await mutate(ME_KEY, response.data, { revalidate: false });
+    return response.data.data;
+  }
+
   async function logout() {
     try {
       await api.post("/auth/logout");
@@ -50,7 +68,7 @@ export function useAuthActions() {
     }
   }
 
-  return { login, logout };
+  return { login, signup, demoLogin, logout };
 }
 
 // Renders children only for the given role. The API is still the authority;

@@ -35,7 +35,7 @@ function Shell({ nav, role, children }: { nav: NavItem[]; role: Role; children: 
   const pathname = usePathname();
   const home = nav[0]?.href ?? "/";
 
-  // Most specific match wins, so /author/tickets/new does not also light up /author/tickets.
+  // Most specific match wins, so /author/books lights up My Books, not Overview.
   const active = nav
     .filter((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))
     .sort((a, b) => b.href.length - a.href.length)[0]?.href;

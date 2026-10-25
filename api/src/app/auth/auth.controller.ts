@@ -4,14 +4,16 @@ import type { ValidRequest } from "../../openapi/define-route.js";
 import { AppError } from "../shared/errors.js";
 import { sendData } from "../shared/envelope.js";
 import { REFRESH_COOKIE_NAME } from "./auth.constants.js";
-import type { loginBody } from "./auth.schemas.js";
+import type { demoLoginBody, loginBody, signupBody } from "./auth.schemas.js";
 import {
   clearAuthCookies,
+  demoLogin,
   getIdentity,
   login,
   revokeRefresh,
   rotateRefresh,
   setAuthCookies,
+  signup,
 } from "./auth.service.js";
 
 export async function loginController(
@@ -46,4 +48,22 @@ export async function meController(req: Request, res: Response) {
   }
   const identity = await getIdentity(req.auth.id);
   sendData(res, identity);
+}
+
+export async function signupController(
+  req: ValidRequest<{ body: z.output<typeof signupBody> }>,
+  res: Response,
+) {
+  const result = await signup(req.valid.body);
+  setAuthCookies(res, result.accessToken, result.refreshToken);
+  sendData(res, result.identity, 201);
+}
+
+export async function demoLoginController(
+  req: ValidRequest<{ body: z.output<typeof demoLoginBody> }>,
+  res: Response,
+) {
+  const result = await demoLogin(req.valid.body.account);
+  setAuthCookies(res, result.accessToken, result.refreshToken);
+  sendData(res, result.identity);
 }
