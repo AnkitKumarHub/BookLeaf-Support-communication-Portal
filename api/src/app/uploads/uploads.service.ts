@@ -108,7 +108,7 @@ function checkFileType(file: IncomingFile): AllowedMime {
   const declared = file.declaredMime.toLowerCase();
   const detected = detectFileType(file.buffer);
   if (!ALLOWED_MIME_TYPES.includes(declared as AllowedMime) || detected !== declared) {
-    throw AppError.validation("Please correct the highlighted fields.", { file: FILE_TYPE_MESSAGE });
+    throw AppError.validation(FILE_TYPE_MESSAGE, { file: FILE_TYPE_MESSAGE });
   }
   return detected;
 }

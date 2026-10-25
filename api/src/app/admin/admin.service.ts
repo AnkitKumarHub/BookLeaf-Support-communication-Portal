@@ -13,9 +13,9 @@ import {
 import { publishTicketChanged, type TicketChanged } from "../realtime/ticket-bus.js";
 
 export type TicketPatch = {
-  status?: TicketStatus;
-  categoryOverride?: TicketCategory | null;
-  priorityOverride?: TicketPriority | null;
+  status?: TicketStatus | undefined;
+  categoryOverride?: TicketCategory | null | undefined;
+  priorityOverride?: TicketPriority | null | undefined;
 };
 
 export type PatchedTicketJson = {

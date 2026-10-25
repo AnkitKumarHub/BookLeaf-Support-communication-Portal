@@ -1,9 +1,10 @@
 import type { Request, Response } from "express";
-import { z } from "zod";
+import type { z } from "zod";
+import type { ValidRequest } from "../../openapi/define-route.js";
 import { AppError } from "../shared/errors.js";
 import { sendData } from "../shared/envelope.js";
 import { REFRESH_COOKIE_NAME } from "./auth.constants.js";
-import { assertLoginRateLimit } from "./login-rate-limit.js";
+import type { loginBody } from "./auth.schemas.js";
 import {
   clearAuthCookies,
   getIdentity,
@@ -13,21 +14,11 @@ import {
   setAuthCookies,
 } from "./auth.service.js";
 
-const loginBody = z.object({
-  email: z.string().trim().email(),
-  password: z.string().min(1),
-});
-
-export async function loginController(req: Request, res: Response) {
-  assertLoginRateLimit(req);
-  const parsed = loginBody.safeParse(req.body);
-  if (!parsed.success) {
-    throw AppError.validation("Please correct the highlighted fields.", {
-      email: "Enter a valid email and password.",
-    });
-  }
-
-  const result = await login(parsed.data.email, parsed.data.password);
+export async function loginController(
+  req: ValidRequest<{ body: z.output<typeof loginBody> }>,
+  res: Response,
+) {
+  const result = await login(req.valid.body.email, req.valid.body.password);
   setAuthCookies(res, result.accessToken, result.refreshToken);
   sendData(res, result.identity);
 }

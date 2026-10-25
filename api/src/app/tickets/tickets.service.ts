@@ -64,15 +64,6 @@ export type CreatedTicketJson = {
   createdAt: string;
 };
 
-export function parseTicketStatus(value: string): TicketStatus {
-  if (!TICKET_STATUSES.includes(value as TicketStatus)) {
-    throw AppError.validation("Please correct the highlighted fields.", {
-      status: "Choose open, in_progress, resolved, or closed.",
-    });
-  }
-  return value as TicketStatus;
-}
-
 export async function createTicket(input: {
   userId: string;
   authorId: string;

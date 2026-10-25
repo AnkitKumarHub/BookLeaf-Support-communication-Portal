@@ -1,7 +1,9 @@
+import { apiReference } from "@scalar/express-api-reference";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express, { type Application } from "express";
 import { loadEnv } from "../env.js";
+import { buildOpenApiDocument } from "../openapi/document.js";
 import { inngestHandler } from "./ai/serve.js";
 import { mountAdminRoutes } from "./admin/admin.module.js";
 import { mountAuthRoutes } from "./auth/auth.module.js";
@@ -38,6 +40,23 @@ export function createServerApplication(): Application {
   mountUploadsRoutes(app);
   mountAdminRoutes(app);
   mountRealtimeRoutes(app);
+
+  // Generated from the routes above (defineRoutes), so it always matches them.
+  const openApiDocument = buildOpenApiDocument();
+  app.get("/openapi.json", (_req, res) => {
+    res.json(openApiDocument);
+  });
+  app.use(
+    "/docs",
+    apiReference({
+      url: "/openapi.json",
+      pageTitle: "BookLeaf API",
+      // Plain API docs: no Scalar hosted features.
+      showDeveloperTools: "never",
+      agent: { disabled: true },
+      mcp: { disabled: true },
+    }),
+  );
 
   app.use(notFoundHandler);
   app.use(errorHandler);

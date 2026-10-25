@@ -1,9 +1,11 @@
 import type { NextFunction, Request, Response } from "express";
 import multer from "multer";
+import type { z } from "zod";
+import type { ValidRequest } from "../../openapi/define-route.js";
+import type { ticketParams } from "../tickets/tickets.schemas.js";
 import { requestAuthor } from "../auth/auth.middleware.js";
 import { sendData } from "../shared/envelope.js";
 import { AppError } from "../shared/errors.js";
-import { isUuid } from "../shared/ids.js";
 import { FILE_SIZE_MESSAGE, MAX_FILE_BYTES } from "./uploads.constants.js";
 import { addAttachment } from "./uploads.service.js";
 
@@ -26,23 +28,24 @@ export function receiveFileMiddleware(req: Request, res: Response, next: NextFun
         next(AppError.payloadTooLarge(FILE_SIZE_MESSAGE));
         return;
       }
-      next(AppError.validation("Please correct the highlighted fields.", { file: "Send one file in the file field." }));
+      next(AppError.validation("Send one file in the file field.", { file: "Send one file in the file field." }));
       return;
     }
     next(err);
   });
 }
 
-export async function uploadAttachmentController(req: Request, res: Response) {
+export async function uploadAttachmentController(
+  req: ValidRequest<{ params: z.output<typeof ticketParams> }>,
+  res: Response,
+) {
   const { authorId } = requestAuthor(req);
-  const ticketId = req.params.ticketId;
-  if (typeof ticketId !== "string" || !isUuid(ticketId)) throw AppError.notFound();
   if (!req.file) {
-    throw AppError.validation("Please correct the highlighted fields.", { file: "Choose a file to attach." });
+    throw AppError.validation("Choose a file to attach.", { file: "Choose a file to attach." });
   }
   const attachment = await addAttachment({
     authorId,
-    ticketId,
+    ticketId: req.valid.params.ticketId,
     file: {
       originalName: req.file.originalname,
       declaredMime: req.file.mimetype,

@@ -1,4 +1,4 @@
-import type { Request } from "express";
+import type { NextFunction, Request, Response } from "express";
 import { AppError } from "../shared/errors.js";
 import {
   LOGIN_RATE_LIMIT,
@@ -18,4 +18,10 @@ export function assertLoginRateLimit(req: Request) {
   }
   recent.push(now);
   attempts.set(ip, recent);
+}
+
+// Runs before body validation, so malformed attempts still count.
+export function loginRateLimit(req: Request, _res: Response, next: NextFunction) {
+  assertLoginRateLimit(req);
+  next();
 }
