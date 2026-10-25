@@ -10,3 +10,5 @@ export function authorTicketKey(ticketId: string): string {
 export function adminTicketKey(ticketId: string): string {
   return `/admin/tickets/${ticketId}`;
 }
+
+export const ADMIN_STATS_KEY = "/admin/stats";

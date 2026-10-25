@@ -18,6 +18,7 @@ import { likePattern } from "../shared/like.js";
 import type { TicketStatus } from "../tickets/tickets.service.js";
 import type { TicketCategory, TicketPriority } from "./admin.constants.js";
 import { publishTicketChanged } from "../realtime/ticket-bus.js";
+import { latestDraftRun } from "./admin.service.js";
 
 const assigneeUser = alias(users, "assignee_user");
 const noteUser = alias(users, "note_user");
@@ -68,6 +69,8 @@ export type AdminDetailJson = AdminQueueJson & {
   aiRationale: string | null;
   draftBody: string | null;
   draftEditedAt: string | null;
+  // True when an admin flagged the current AI draft as not good enough.
+  draftFlagged: boolean;
   replies: { id: string; body: string; createdAt: string }[];
   notes: AdminNoteJson[];
   attachments: {
@@ -194,7 +197,7 @@ export async function getAdminTicket(
     }
   }
 
-  const [replies, notes, attachments, events] = await Promise.all([
+  const [replies, notes, attachments, events, draftRun] = await Promise.all([
     db
       .select({
         id: ticketMessages.id,
@@ -247,6 +250,7 @@ export async function getAdminTicket(
       .from(ticketEvents)
       .where(eq(ticketEvents.ticketId, ticket.id))
       .orderBy(asc(ticketEvents.createdAt)),
+    latestDraftRun(ticket.id),
   ]);
 
   return {
@@ -280,6 +284,7 @@ export async function getAdminTicket(
     draftEditedAt: ticket.draftEditedAt
       ? ticket.draftEditedAt.toISOString()
       : null,
+    draftFlagged: Boolean(ticket.draftBody && draftRun?.flaggedAt),
     replies: replies.map((reply) => ({
       id: reply.id,
       body: reply.body,

@@ -5,7 +5,9 @@ import { defineRoutes } from "../../openapi/define-route.js";
 import {
   addAdminNoteController,
   addAdminReplyController,
+  adminStatsController,
   assignAdminTicketController,
+  flagDraftController,
   getAdminTicketController,
   getAiRunController,
   listAdminTicketsController,
@@ -16,11 +18,14 @@ import {
   unassignAdminTicketController,
 } from "./admin.controller.js";
 import {
+  adminStats,
   adminTicketDetail,
   adminTicketParams,
   aiRun,
   aiRunParams,
   assignment,
+  flagDraftBody,
+  flagResult,
   messageBody,
   patchedTicket,
   patchTicketBody,
@@ -144,6 +149,30 @@ export function createAdminRouter(): ExpressRouter {
       429: "More than 5 regenerations of this ticket in an hour.",
     },
     handler: regenerateDraftController,
+  });
+
+  route.post("/admin/tickets/:ticketId/draft/flag", {
+    summary: "Flag the AI draft",
+    description:
+      "Marks the current AI draft as not good enough, or clears the mark with `flagged: false`. The flag is stored on that draft's AI run, so a regenerated draft starts unflagged. Flagged drafts are counted on the dashboard.",
+    access: "admin",
+    params: adminTicketParams,
+    body: flagDraftBody,
+    responses: {
+      200: { description: "Saved.", schema: flagResult },
+      404: NOT_FOUND,
+      409: "The ticket has no AI draft right now.",
+    },
+    handler: flagDraftController,
+  });
+
+  route.get("/admin/stats", {
+    summary: "Dashboard numbers",
+    description:
+      "Ticket volume (today, this week, all time, last 14 days), AI token use and estimated cost in rupees by model and task, average AI confidence, how often admins override the AI, and flagged drafts. Today and this week use India time.",
+    access: "admin",
+    responses: { 200: { description: "The numbers.", schema: adminStats } },
+    handler: adminStatsController,
   });
 
   route.get("/admin/ai-runs/:runId", {

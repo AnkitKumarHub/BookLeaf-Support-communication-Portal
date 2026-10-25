@@ -106,8 +106,38 @@ export type AdminTicketDetail = AdminQueueRow & {
   aiRationale: string | null;
   draftBody: string | null;
   draftEditedAt: string | null;
+  draftFlagged: boolean;
   replies: TicketReply[];
   notes: AdminNote[];
   attachments: TicketAttachment[];
   events: AdminEvent[];
+};
+
+type Periods<T> = { today: T; week: T; all: T };
+type TokenTotals = { inputTokens: number; outputTokens: number; costInr: number };
+
+export type AdminStats = {
+  generatedAt: string;
+  tickets: {
+    created: Periods<number>;
+    closed: Periods<number>;
+    open: number;
+    total: number;
+    daily: { date: string; created: number }[];
+  };
+  ai: {
+    usdToInr: number;
+    tokens: Periods<TokenTotals>;
+    byModel: { model: string; runs: number; inputTokens: number; outputTokens: number; costInr: number | null; priced: boolean }[];
+    byTask: { task: "classify" | "draft"; runs: number; inputTokens: number; outputTokens: number; costInr: number }[];
+    avgCostPerTicketInr: number | null;
+    unpricedModels: string[];
+  };
+  quality: {
+    avgConfidence: number | null;
+    classified: number;
+    overridden: { category: number; priority: number; either: number; rate: number | null };
+    drafts: { total: number; flagged: number; rate: number | null };
+    recentFlagged: { ticketId: string; publicId: string; subject: string; flaggedAt: string }[];
+  };
 };

@@ -1,5 +1,6 @@
 "use client";
 
+import { Flag } from "lucide-react";
 import { useState } from "react";
 import { buttonClass, ErrorState, inputClass, primaryButtonClass } from "@/components/ui";
 import { api } from "@/lib/api";
@@ -19,6 +20,7 @@ export function Composer({ ticket, refresh }: { ticket: AdminTicketDetail; refre
   const [sent, setSent] = useState(false);
   const send = useAction(refresh);
   const regenerate = useAction(refresh);
+  const flag = useAction(refresh);
 
   const draft = ticket.draftState === "suggested" ? ticket.draftBody : null;
 
@@ -56,8 +58,37 @@ export function Composer({ ticket, refresh }: { ticket: AdminTicketDetail; refre
     <section>
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-semibold text-neutral-700">Reply to the author</h2>
-        <DraftStatus state={ticket.draftState} aiState={ticket.aiState} hasDraft={Boolean(draft)} />
+        <div className="flex items-center gap-2">
+          <DraftStatus state={ticket.draftState} aiState={ticket.aiState} hasDraft={Boolean(draft)} />
+          {draft && (
+            // Feedback on AI quality: counted on the dashboard. Click again to clear.
+            <button
+              type="button"
+              disabled={flag.busy}
+              onClick={() =>
+                void flag.run(() =>
+                  api.post(`/admin/tickets/${ticket.id}/draft/flag`, { flagged: !ticket.draftFlagged }),
+                )
+              }
+              aria-pressed={ticket.draftFlagged}
+              title={ticket.draftFlagged ? "Flagged as a poor draft. Click to clear." : "Flag this draft as not good enough"}
+              className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium disabled:opacity-50 ${
+                ticket.draftFlagged
+                  ? "bg-red-50 text-red-700 ring-1 ring-inset ring-red-200 hover:bg-red-100"
+                  : "text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800"
+              }`}
+            >
+              <Flag className={`size-3.5 ${ticket.draftFlagged ? "fill-current" : ""}`} aria-hidden />
+              {ticket.draftFlagged ? "Flagged" : "Flag draft"}
+            </button>
+          )}
+        </div>
       </div>
+      {flag.error && (
+        <div className="mb-2">
+          <ErrorState message={flag.error} />
+        </div>
+      )}
       <div className="rounded-xl border border-neutral-200 bg-white p-4">
         {sent && !text && (
           <p className="mb-3 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">

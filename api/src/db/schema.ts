@@ -280,6 +280,9 @@ export const aiRuns = pgTable("ai_runs", {
     .notNull()
     .defaultNow(),
   completedAt: timestamp("completed_at", { withTimezone: true, mode: "date" }),
+  // Set when an admin flags this draft as not good enough (draft runs only).
+  flaggedAt: timestamp("flagged_at", { withTimezone: true, mode: "date" }),
+  flaggedBy: uuid("flagged_by").references(() => users.id),
 });
 
 export const refreshTokens = pgTable(

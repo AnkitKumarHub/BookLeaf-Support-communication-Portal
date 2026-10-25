@@ -107,3 +107,19 @@ const STALE_AFTER_MS = 3 * 24 * 60 * 60 * 1000;
 export function isOverdue(status: TicketStatus, createdAt: string, now = Date.now()): boolean {
   return isUnresolved(status) && now - new Date(createdAt).getTime() > STALE_AFTER_MS;
 }
+
+const inrPrecise = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumSignificantDigits: 2 });
+
+// AI costs are often fractions of a rupee: "₹0.031" reads better than "₹0.03".
+export function formatCostInr(value: number | null): string | null {
+  if (value === null) return null;
+  return value > 0 && value < 1 ? inrPrecise.format(value) : inr.format(value);
+}
+
+export function formatPercent(value: number | null): string | null {
+  return value === null ? null : `${Math.round(value * 100)}%`;
+}
+
+export function formatCount(value: number): string {
+  return value.toLocaleString("en-IN");
+}

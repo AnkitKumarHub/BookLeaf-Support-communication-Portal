@@ -7,8 +7,9 @@ import { api, API_BASE_URL } from "./api";
 const RECONNECT_DELAY_MS = 2_000;
 const MAX_FAILED_RECONNECTS = 3;
 
-// A ticket list key, such as /admin/tickets?status=open or /author/tickets?limit=100.
-const TICKET_LIST_KEY = /\/tickets(\?|$)/;
+// A ticket list key, such as /admin/tickets?status=open or /author/tickets?limit=100,
+// or the admin dashboard numbers, which change with every ticket.
+const TICKET_LIST_KEY = /\/tickets(\?|$)|^\/admin\/stats$/;
 
 // One live connection per tab. The stream only says "ticket X changed";
 // SWR then refetches that ticket and the lists over REST.

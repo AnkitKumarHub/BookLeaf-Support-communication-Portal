@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { aiRuns, admins, ticketEvents, ticketMessages, tickets, users } from "../../db/schema.js";
 import { inngest, ticketCreatedEvent, ticketDraftRequestedEvent } from "../ai/inngest.js";
@@ -488,4 +488,50 @@ async function assertTicket(
     .limit(1);
   if (!row) throw AppError.notFound();
   return row.authorId;
+}
+
+// The draft run that produced the ticket's current draft: the newest draft run
+// that completed without an error code ("skipped_edited" runs wrote nothing).
+export async function latestDraftRun(
+  ticketId: string,
+): Promise<{ id: string; flaggedAt: Date | null } | null> {
+  const [run] = await db
+    .select({ id: aiRuns.id, flaggedAt: aiRuns.flaggedAt })
+    .from(aiRuns)
+    .where(
+      and(
+        eq(aiRuns.ticketId, ticketId),
+        eq(aiRuns.taskType, "draft"),
+        eq(aiRuns.state, "completed"),
+        isNull(aiRuns.errorCode),
+      ),
+    )
+    .orderBy(desc(aiRuns.completedAt))
+    .limit(1);
+  return run ?? null;
+}
+
+// Marks the current AI draft as not good enough (or clears the mark). The flag
+// lives on the draft's ai_runs row, so a regenerated draft starts unflagged.
+export async function flagDraft(
+  userId: string,
+  ticketId: string,
+  flagged: boolean,
+): Promise<{ draftFlagged: boolean }> {
+  const [ticket] = await db
+    .select({ authorId: tickets.authorId, draftBody: tickets.draftBody })
+    .from(tickets)
+    .where(eq(tickets.id, ticketId))
+    .limit(1);
+  if (!ticket) throw AppError.notFound();
+  const run = await latestDraftRun(ticketId);
+  if (!ticket.draftBody || !run) {
+    throw AppError.conflict("There is no AI draft to flag.");
+  }
+  await db
+    .update(aiRuns)
+    .set(flagged ? { flaggedAt: new Date(), flaggedBy: userId } : { flaggedAt: null, flaggedBy: null })
+    .where(eq(aiRuns.id, run.id));
+  publishTicketChanged({ ticketId, authorId: ticket.authorId, audience: "admin" });
+  return { draftFlagged: flagged };
 }

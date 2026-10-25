@@ -6,6 +6,7 @@ import { sendData } from "../shared/envelope.js";
 import type {
   adminTicketParams,
   aiRunParams,
+  flagDraftBody,
   messageBody,
   patchTicketBody,
   queueQuery,
@@ -15,6 +16,7 @@ import {
   addNote,
   addReply,
   assignTicket,
+  flagDraft,
   getAiRun,
   patchTicket,
   regenerateDraft,
@@ -23,6 +25,7 @@ import {
   unassignTicket,
 } from "./admin.service.js";
 import { getAdminTicket, listAdminTickets } from "./admin.queue.service.js";
+import { getAdminStats } from "./admin.stats.service.js";
 
 type TicketParams = { params: z.output<typeof adminTicketParams> };
 type TicketBody<S extends z.ZodType> = TicketParams & { body: z.output<S> };
@@ -104,4 +107,14 @@ export async function getAiRunController(
 ) {
   requestAdmin(req);
   sendData(res, await getAiRun(req.valid.params.runId));
+}
+
+export async function flagDraftController(req: ValidRequest<TicketBody<typeof flagDraftBody>>, res: Response) {
+  const { userId } = requestAdmin(req);
+  sendData(res, await flagDraft(userId, req.valid.params.ticketId, req.valid.body.flagged));
+}
+
+export async function adminStatsController(req: ValidRequest<object>, res: Response) {
+  requestAdmin(req);
+  sendData(res, await getAdminStats());
 }

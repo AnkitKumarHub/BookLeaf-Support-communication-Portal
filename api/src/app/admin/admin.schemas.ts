@@ -57,6 +57,12 @@ export const messageBody = z.object({
     .max(10_000, { error: MESSAGE_BODY_MESSAGE }),
 });
 
+export const flagDraftBody = z.object({
+  flagged: z.boolean({ error: "Use true or false." }).meta({ description: "true flags the current draft, false clears the flag." }),
+});
+
+export const flagResult = z.object({ draftFlagged: z.boolean() });
+
 export const regenerateBody = z.object({
   confirmDiscardEdits: z
     .boolean({ error: "Use true or false." })
@@ -97,6 +103,7 @@ export const adminTicketDetail = queueRow.extend({
   aiRationale: z.string().nullable(),
   draftBody: z.string().nullable(),
   draftEditedAt: z.iso.datetime().nullable(),
+  draftFlagged: z.boolean().meta({ description: "An admin flagged the current AI draft as not good enough." }),
   replies: z.array(message),
   notes: z.array(message.extend({ authorName: z.string() })),
   attachments: z.array(attachment),
@@ -138,4 +145,57 @@ export const aiRun = z.object({
   errorCode: z.string().nullable(),
   startedAt: z.iso.datetime(),
   completedAt: z.iso.datetime().nullable(),
+});
+
+const period = <T extends z.ZodType>(value: T) => z.object({ today: value, week: value, all: value });
+const tokenTotals = z.object({ inputTokens: z.number().int(), outputTokens: z.number().int(), costInr: z.number() });
+
+export const adminStats = z.object({
+  generatedAt: z.iso.datetime(),
+  tickets: z.object({
+    created: period(z.number().int()).meta({ description: "New tickets. Today and this week are India time; weeks start Monday." }),
+    closed: period(z.number().int()).meta({ description: "Tickets moved to resolved or closed in the period; `all` is the current resolved + closed count." }),
+    open: z.number().int().meta({ description: "Open and in progress now." }),
+    total: z.number().int(),
+    daily: z.array(z.object({ date: z.string().meta({ example: "2026-10-26" }), created: z.number().int() })).meta({ description: "New tickets per day for the last 14 days." }),
+  }),
+  ai: z.object({
+    usdToInr: z.number().meta({ description: "Rate used for rupee costs (USD_TO_INR)." }),
+    tokens: period(tokenTotals),
+    byModel: z.array(
+      z.object({
+        model: z.string(),
+        runs: z.number().int(),
+        inputTokens: z.number().int(),
+        outputTokens: z.number().int(),
+        costInr: z.number().nullable().meta({ description: "Null when the model has no price in the API's price table." }),
+        priced: z.boolean(),
+      }),
+    ),
+    byTask: z.array(
+      z.object({
+        task: z.enum(["classify", "draft"]),
+        runs: z.number().int(),
+        inputTokens: z.number().int(),
+        outputTokens: z.number().int(),
+        costInr: z.number(),
+      }),
+    ),
+    avgCostPerTicketInr: z.number().nullable(),
+    unpricedModels: z.array(z.string()),
+  }),
+  quality: z.object({
+    avgConfidence: z.number().nullable(),
+    classified: z.number().int(),
+    overridden: z.object({
+      category: z.number().int(),
+      priority: z.number().int(),
+      either: z.number().int(),
+      rate: z.number().nullable().meta({ description: "Share of AI-classified tickets where an admin changed the category or priority." }),
+    }),
+    drafts: z.object({ total: z.number().int(), flagged: z.number().int(), rate: z.number().nullable() }),
+    recentFlagged: z.array(
+      z.object({ ticketId: z.uuid(), publicId: z.string(), subject: z.string(), flaggedAt: z.iso.datetime() }),
+    ),
+  }),
 });
