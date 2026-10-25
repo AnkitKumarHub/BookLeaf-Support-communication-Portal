@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import useSWR from "swr";
-import { EmptyState, ErrorState, PageHeader, Skeleton, StatusPill } from "@/components/ui";
+import { EmptyState, ErrorState, filterTabClass, PageHeader, Skeleton, StatusPill } from "@/components/ui";
 import type { Envelope } from "@/lib/api";
 import { formatAge, GENERAL_TICKET_LABEL, TICKET_STATUSES, TICKET_STATUS_LABELS } from "@/lib/format";
 import { AUTHOR_TICKETS_KEY } from "@/lib/keys";
@@ -28,7 +28,7 @@ export default function MyTicketsPage() {
         actions={<NewTicketButton />}
       />
 
-      <div className="mb-4 flex flex-wrap gap-1" role="tablist" aria-label="Filter by status">
+      <div className="mb-5 flex flex-wrap gap-1" role="tablist" aria-label="Filter by status">
         {(["all", ...TICKET_STATUSES] as const).map((value) => {
           const count = value === "all" ? all?.length : all?.filter((t) => t.status === value).length;
           return (
@@ -38,9 +38,7 @@ export default function MyTicketsPage() {
               role="tab"
               aria-selected={status === value}
               onClick={() => setStatus(value)}
-              className={`rounded-md px-3 py-1.5 text-sm ${
-                status === value ? "bg-neutral-900 text-white" : "text-neutral-600 hover:bg-neutral-100"
-              }`}
+              className={filterTabClass(status === value)}
             >
               {value === "all" ? "All" : TICKET_STATUS_LABELS[value]}
               {count !== undefined && <span className="ml-1.5 tabular-nums opacity-70">{count}</span>}
@@ -68,7 +66,7 @@ export default function MyTicketsPage() {
       )}
 
       {tickets && tickets.length > 0 && (
-        <ul className="divide-y divide-neutral-200 overflow-hidden rounded-xl border border-neutral-200 bg-white">
+        <ul className="divide-y divide-neutral-100 overflow-hidden rounded-2xl border border-neutral-200 bg-white">
           {tickets.map((ticket) => (
             <li key={ticket.id}>
               <Link
@@ -77,12 +75,12 @@ export default function MyTicketsPage() {
               >
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium">{ticket.subject}</span>
-                  <span className="block text-xs text-neutral-500">
+                  <span className="mt-0.5 block text-xs text-neutral-600">
                     {ticket.publicId} · {ticket.book?.title ?? GENERAL_TICKET_LABEL} · opened{" "}
                     {formatAge(ticket.createdAt)}
                   </span>
                 </span>
-                <span className="text-xs text-neutral-500">
+                <span className="text-xs text-neutral-600">
                   {ticket.replyCount === 0
                     ? "No reply yet"
                     : `${ticket.replyCount} ${ticket.replyCount === 1 ? "reply" : "replies"}`}

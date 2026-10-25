@@ -35,6 +35,12 @@ const PAGE_SIZE = 50;
 const FILTER_KEYS = ["status", "category", "priority", "assignee", "from", "to", "q"] as const;
 type FilterKey = (typeof FILTER_KEYS)[number];
 
+// Shared with the ticket detail page: a fixed-height label row above every
+// field, so a field with an action beside its label still lines up with the
+// fields next to it.
+const labelRowClass = "mb-1.5 flex min-h-7 items-center justify-between gap-2";
+const labelClass = "text-xs font-semibold uppercase tracking-wide text-neutral-600";
+
 export default function AdminQueuePage() {
   // useSearchParams needs a Suspense boundary in the App Router.
   return (
@@ -84,68 +90,103 @@ function Queue() {
         refreshing={isValidating}
       />
 
-      <Filters params={params} onChange={setFilter} onClear={() => router.replace(pathname, { scroll: false })} hasFilters={hasFilters} />
+      <div className="space-y-6">
+        <Filters
+          params={params}
+          onChange={setFilter}
+          onClear={() => router.replace(pathname, { scroll: false })}
+          hasFilters={hasFilters}
+        />
 
-      {error && <ErrorState message="The queue could not be loaded." onRetry={() => void mutate()} />}
+        {error && <ErrorState message="The queue could not be loaded." onRetry={() => void mutate()} />}
 
-      {!data && !error && (
-        <div className="space-y-2">
-          {[0, 1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-14 w-full" />
-          ))}
-        </div>
-      )}
-
-      {rows && rows.length === 0 && (
-        <EmptyState title={hasFilters ? "No tickets match these filters" : "No tickets yet"}>
-          {hasFilters && (
-            <button type="button" onClick={() => router.replace(pathname)} className="font-medium text-emerald-700 hover:underline">
-              Clear filters
-            </button>
-          )}
-        </EmptyState>
-      )}
-
-      {rows && rows.length > 0 && (
-        <>
-          <p className="mb-2 text-xs text-neutral-500">
-            {total} {total === 1 ? "ticket" : "tickets"}
-          </p>
-          <div className="overflow-x-auto rounded-xl border border-neutral-200 bg-white">
-            <table className="w-full min-w-[56rem] text-left text-sm">
-              <thead className="border-b border-neutral-200 bg-neutral-50 text-xs font-medium text-neutral-500">
-                <tr>
-                  <th className="px-4 py-2.5">Priority</th>
-                  <th className="px-4 py-2.5">Ticket</th>
-                  <th className="px-4 py-2.5">Category</th>
-                  <th className="px-4 py-2.5">Status</th>
-                  <th className="px-4 py-2.5">Assignee</th>
-                  <th className="px-4 py-2.5">Age</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-100">
-                {rows.map((row) => (
-                  <QueueRow key={row.id} row={row} />
-                ))}
-              </tbody>
-            </table>
+        {!data && !error && (
+          <div className="space-y-2">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-14 w-full" />
+            ))}
           </div>
+        )}
 
-          {pages > 1 && (
-            <div className="mt-4 flex items-center justify-between text-sm">
-              <button type="button" className={buttonClass} disabled={page <= 1} onClick={() => setFilter("page", String(page - 1))}>
-                Previous
+        {rows && rows.length === 0 && (
+          <EmptyState title={hasFilters ? "No tickets match these filters" : "No tickets yet"}>
+            {hasFilters && (
+              <button
+                type="button"
+                onClick={() => router.replace(pathname)}
+                className="font-medium text-emerald-700 hover:underline"
+              >
+                Clear filters
               </button>
-              <span className="text-neutral-500">
-                Page {page} of {pages}
-              </span>
-              <button type="button" className={buttonClass} disabled={page >= pages} onClick={() => setFilter("page", String(page + 1))}>
-                Next
-              </button>
+            )}
+          </EmptyState>
+        )}
+
+        {rows && rows.length > 0 && (
+          <section aria-labelledby="queue-heading">
+            <h2 id="queue-heading" className={`${labelClass} mb-3`}>
+              {total} {total === 1 ? "ticket" : "tickets"}
+              {hasFilters ? " matching these filters" : ""}
+            </h2>
+
+            <div className="overflow-x-auto rounded-2xl border border-neutral-200 bg-white">
+              <table className="w-full min-w-[56rem] text-left text-sm">
+                <thead className="border-b border-neutral-200 bg-neutral-50 text-xs font-semibold uppercase tracking-wide text-neutral-600">
+                  <tr>
+                    <th scope="col" className="py-3 pl-5 pr-4">
+                      Priority
+                    </th>
+                    <th scope="col" className="px-4 py-3">
+                      Ticket
+                    </th>
+                    <th scope="col" className="px-4 py-3">
+                      Category
+                    </th>
+                    <th scope="col" className="px-4 py-3">
+                      Status
+                    </th>
+                    <th scope="col" className="px-4 py-3">
+                      Assignee
+                    </th>
+                    <th scope="col" className="py-3 pl-4 pr-5">
+                      Age
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-100">
+                  {rows.map((row) => (
+                    <QueueRow key={row.id} row={row} />
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )}
-        </>
-      )}
+
+            {pages > 1 && (
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <button
+                  type="button"
+                  className={buttonClass}
+                  disabled={page <= 1}
+                  onClick={() => setFilter("page", String(page - 1))}
+                >
+                  Previous
+                </button>
+                <span className="text-sm text-neutral-600">
+                  Page {page} of {pages}
+                </span>
+                <button
+                  type="button"
+                  className={buttonClass}
+                  disabled={page >= pages}
+                  onClick={() => setFilter("page", String(page + 1))}
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </section>
+        )}
+      </div>
     </>
   );
 }
@@ -154,32 +195,47 @@ function QueueRow({ row }: { row: AdminQueueRow }) {
   const stale = isOverdue(row.status, row.createdAt);
   const urgent = isUnresolved(row.status) && row.effectivePriority === "critical";
   return (
-    <tr className={`hover:bg-neutral-50 ${urgent ? "bg-red-50/40" : ""} ${row.status === "closed" ? "text-neutral-500" : ""}`}>
-      <td className={`px-4 py-3 ${urgent ? "border-l-4 border-red-500" : "border-l-4 border-transparent"}`}>
-        <PriorityBadge priority={row.effectivePriority} aiState={row.aiState} overridden={row.priorityOverride !== null} />
+    <tr
+      className={`hover:bg-neutral-50 ${urgent ? "bg-red-50/40" : ""} ${row.status === "closed" ? "text-neutral-500" : ""}`}
+    >
+      {/* The rail marks an unresolved critical ticket; the badge beside it says
+          the same thing in words, so the colour is never the only signal. */}
+      <td className={`py-3.5 pl-5 pr-4 ${urgent ? "border-l-4 border-red-500 pl-4" : ""}`}>
+        <PriorityBadge
+          priority={row.effectivePriority}
+          aiState={row.aiState}
+          overridden={row.priorityOverride !== null}
+        />
       </td>
-      <td className="max-w-md px-4 py-3">
-        <Link href={`/admin/tickets/${row.id}`} className="block font-medium text-neutral-900 hover:text-emerald-800 hover:underline">
+      <td className="max-w-md px-4 py-3.5">
+        <Link
+          href={`/admin/tickets/${row.id}`}
+          className="block font-medium text-neutral-900 hover:text-emerald-800 hover:underline"
+        >
           {row.subject}
         </Link>
-        <span className="block truncate text-xs text-neutral-500">
+        <span className="mt-0.5 block truncate text-xs text-neutral-600">
           {row.publicId} · {row.authorName} · {row.bookTitle ?? GENERAL_TICKET_LABEL}
         </span>
       </td>
-      <td className="px-4 py-3">
-        <CategoryLabel category={row.effectiveCategory} aiState={row.aiState} overridden={row.categoryOverride !== null} />
+      <td className="px-4 py-3.5">
+        <CategoryLabel
+          category={row.effectiveCategory}
+          aiState={row.aiState}
+          overridden={row.categoryOverride !== null}
+        />
       </td>
-      <td className="px-4 py-3">
+      <td className="px-4 py-3.5">
         <StatusPill status={row.status} />
       </td>
-      <td className="px-4 py-3 text-xs">
+      <td className="px-4 py-3.5 text-sm">
         {row.assignedToMe ? (
           <span className="font-medium text-emerald-800">You</span>
         ) : (
-          (row.assigneeName ?? <span className="text-neutral-400">Unassigned</span>)
+          (row.assigneeName ?? <span className="text-neutral-500">Unassigned</span>)
         )}
       </td>
-      <td className="px-4 py-3 text-xs" title={formatDateTime(row.createdAt)}>
+      <td className="py-3.5 pl-4 pr-5 text-sm" title={formatDateTime(row.createdAt)}>
         <span className={stale ? "font-semibold text-red-700" : "text-neutral-600"}>{formatAge(row.createdAt)}</span>
       </td>
     </tr>
@@ -208,9 +264,18 @@ function Filters({
   }, [search, urlSearch, onChange]);
 
   const select = (key: FilterKey, label: string, options: { value: string; label: string }[]) => (
-    <label className="flex w-40 flex-col gap-1 text-xs text-neutral-500">
-      {label}
-      <select value={params.get(key) ?? ""} onChange={(e) => onChange(key, e.target.value)} className={`${inputClass} py-1.5`}>
+    <div>
+      <div className={labelRowClass}>
+        <label htmlFor={`filter-${key}`} className={labelClass}>
+          {label}
+        </label>
+      </div>
+      <select
+        id={`filter-${key}`}
+        value={params.get(key) ?? ""}
+        onChange={(e) => onChange(key, e.target.value)}
+        className={inputClass}
+      >
         <option value="">All</option>
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -218,61 +283,72 @@ function Filters({
           </option>
         ))}
       </select>
-    </label>
+    </div>
+  );
+
+  const date = (key: "from" | "to", label: string) => (
+    <div>
+      <div className={labelRowClass}>
+        <label htmlFor={`filter-${key}`} className={labelClass}>
+          {label}
+        </label>
+      </div>
+      <input
+        id={`filter-${key}`}
+        type="date"
+        value={params.get(key) ?? ""}
+        onChange={(e) => onChange(key, e.target.value)}
+        className={inputClass}
+      />
+    </div>
   );
 
   return (
-    <div className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-neutral-200 bg-white p-4">
-      <label className="flex min-w-[16rem] flex-1 flex-col gap-1 text-xs text-neutral-500">
-        Search
-        <input
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Ticket id, subject, author name or email"
-          className={`${inputClass} py-1.5`}
-        />
-      </label>
-      {select("status", "Status", TICKET_STATUSES.map((value) => ({ value, label: TICKET_STATUS_LABELS[value] })))}
-      {select("priority", "Priority", TICKET_PRIORITIES.map((value) => ({ value, label: PRIORITY_LABELS[value] })))}
-      {select("category", "Category", TICKET_CATEGORIES.map((value) => ({ value, label: CATEGORY_LABELS[value] })))}
-      {select("assignee", "Assignee", [
-        { value: "me", label: "Assigned to me" },
-        { value: "unassigned", label: "Unassigned" },
-      ])}
-      <div className="flex flex-col gap-1 text-xs text-neutral-500">
-        Created between
-        <div className="flex gap-1">
-          <input
-            type="date"
-            aria-label="Created from"
-            value={params.get("from") ?? ""}
-            onChange={(e) => onChange("from", e.target.value)}
-            className={`${inputClass} w-36 px-2 py-1.5`}
-          />
-          <input
-            type="date"
-            aria-label="Created to"
-            value={params.get("to") ?? ""}
-            onChange={(e) => onChange("to", e.target.value)}
-            className={`${inputClass} w-36 px-2 py-1.5`}
-          />
-        </div>
-      </div>
-      {hasFilters && (
-        <div className="flex w-full">
+    <section aria-labelledby="filters-heading" className="rounded-2xl border border-neutral-200 bg-white p-5">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h2 id="filters-heading" className={labelClass}>
+          Filters
+        </h2>
+        {hasFilters && (
           <button
             type="button"
             onClick={() => {
               setSearch("");
               onClear();
             }}
-            className="text-xs font-medium text-emerald-700 hover:underline"
+            className="rounded px-1 py-1 text-xs font-medium text-emerald-700 underline underline-offset-2 hover:text-emerald-900"
           >
             Clear all filters
           </button>
+        )}
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="xl:col-span-2">
+          <div className={labelRowClass}>
+            <label htmlFor="filter-q" className={labelClass}>
+              Search
+            </label>
+          </div>
+          <input
+            id="filter-q"
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Ticket id, subject, author name or email"
+            className={inputClass}
+          />
         </div>
-      )}
-    </div>
+        {select("status", "Status", TICKET_STATUSES.map((value) => ({ value, label: TICKET_STATUS_LABELS[value] })))}
+        {select("priority", "Priority", TICKET_PRIORITIES.map((value) => ({ value, label: PRIORITY_LABELS[value] })))}
+        {select("category", "Category", TICKET_CATEGORIES.map((value) => ({ value, label: CATEGORY_LABELS[value] })))}
+        {select("assignee", "Assignee", [
+          { value: "me", label: "Assigned to me" },
+          { value: "unassigned", label: "Unassigned" },
+        ])}
+        {date("from", "Created from")}
+        {date("to", "Created to")}
+      </div>
+    </section>
   );
 }

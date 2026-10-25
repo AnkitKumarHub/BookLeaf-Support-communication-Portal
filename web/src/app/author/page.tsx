@@ -4,13 +4,18 @@ import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import useSWR from "swr";
-import { Card, ErrorState, Money, PageHeader, Skeleton, StatusPill } from "@/components/ui";
+import { ErrorState, Money, PageHeader, Skeleton, StatusPill } from "@/components/ui";
 import type { Envelope } from "@/lib/api";
 import { useMe } from "@/lib/auth";
 import { formatAge, GENERAL_TICKET_LABEL, isInProduction, sumMoney, TICKET_STATUSES, TICKET_STATUS_LABELS } from "@/lib/format";
 import { AUTHOR_BOOKS_KEY, AUTHOR_TICKETS_KEY } from "@/lib/keys";
 import type { AuthorTicketRow, Book } from "@/lib/types";
 import { NewTicketButton } from "@/components/new-ticket-dialog";
+
+// The same panel and label styling as the rest of the app, so the author and
+// admin portals read as one product.
+const panelClass = "rounded-2xl border border-neutral-200 bg-white p-5";
+const labelClass = "text-xs font-semibold uppercase tracking-wide text-neutral-600";
 
 export default function AuthorOverviewPage() {
   const { me } = useMe();
@@ -49,8 +54,12 @@ export default function AuthorOverviewPage() {
   );
 }
 
+function Panel({ children }: { children: ReactNode }) {
+  return <div className={panelClass}>{children}</div>;
+}
+
 function StatLabel({ children }: { children: ReactNode }) {
-  return <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">{children}</p>;
+  return <p className={labelClass}>{children}</p>;
 }
 
 // A whole card that opens a page: the entire box is the link.
@@ -58,11 +67,11 @@ function LinkCard({ href, label, children }: { href: string; label: string; chil
   return (
     <Link
       href={href}
-      className="group block rounded-xl border border-neutral-200 bg-white p-5 transition hover:border-emerald-500 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-emerald-600"
+      className={`group block transition hover:border-emerald-500 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 ${panelClass}`}
     >
       <div className="flex items-start justify-between gap-2">
         <StatLabel>{label}</StatLabel>
-        <ArrowUpRight className="size-4 text-neutral-400 transition group-hover:text-emerald-700" aria-hidden />
+        <ArrowUpRight className="size-4 text-neutral-500 transition group-hover:text-emerald-700" aria-hidden />
       </div>
       {children}
     </Link>
@@ -74,8 +83,8 @@ function BooksCard({ books }: { books: Book[] | undefined }) {
   const inProduction = books.filter((book) => isInProduction(book.status)).length;
   return (
     <LinkCard href="/author/books" label="Books">
-      <p className="mt-2 text-3xl font-semibold tabular-nums">{books.length}</p>
-      <p className="mt-1 text-sm text-neutral-600">
+      <p className="mt-2 text-3xl font-semibold leading-none tabular-nums">{books.length}</p>
+      <p className="mt-2 text-sm text-neutral-600">
         {books.length - inProduction} published · {inProduction} in production
       </p>
     </LinkCard>
@@ -91,7 +100,7 @@ function RoyaltyCard({ books }: { books: Book[] | undefined }) {
     { label: "Pending", value: sumMoney(books.map((b) => b.royaltyPending)) },
   ];
   return (
-    <Card>
+    <Panel>
       <StatLabel>Royalties, all books</StatLabel>
       <dl className="mt-2 space-y-1.5">
         {rows.map((row) => (
@@ -103,8 +112,8 @@ function RoyaltyCard({ books }: { books: Book[] | undefined }) {
           </div>
         ))}
       </dl>
-      <p className="mt-3 text-xs text-neutral-500">Paid quarterly, within 45 days of quarter end.</p>
-    </Card>
+      <p className="mt-3 text-xs text-neutral-600">Paid quarterly, within 45 days of quarter end.</p>
+    </Panel>
   );
 }
 
@@ -112,11 +121,11 @@ function TicketsCard({ tickets }: { tickets: AuthorTicketRow[] | undefined }) {
   if (!tickets) return <CardSkeleton />;
   return (
     <LinkCard href="/author/tickets" label="Support tickets">
-      <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2">
+      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
         {TICKET_STATUSES.map((status) => (
           <div key={status}>
-            <dt className="text-xs text-neutral-500">{TICKET_STATUS_LABELS[status]}</dt>
-            <dd className="text-lg font-semibold tabular-nums">
+            <dt className="text-xs text-neutral-600">{TICKET_STATUS_LABELS[status]}</dt>
+            <dd className="mt-0.5 text-lg font-semibold tabular-nums">
               {tickets.filter((ticket) => ticket.status === status).length}
             </dd>
           </div>
@@ -130,39 +139,41 @@ function RecentTickets({ tickets }: { tickets: AuthorTicketRow[] | undefined }) 
   // The list API sorts by updatedAt, newest first.
   const recent = tickets?.slice(0, 5);
   return (
-    <section className="mt-8">
-      <h2 className="mb-3 text-sm font-semibold text-neutral-700">Recent tickets</h2>
+    <section aria-labelledby="recent-heading" className="mt-8">
+      <h2 id="recent-heading" className={`mb-3 ${labelClass}`}>
+        Recent tickets
+      </h2>
       {!recent ? (
-        <Card>
+        <Panel>
           <div className="space-y-3">
             <Skeleton className="h-5 w-2/3" />
             <Skeleton className="h-5 w-1/2" />
             <Skeleton className="h-5 w-3/5" />
           </div>
-        </Card>
+        </Panel>
       ) : recent.length === 0 ? (
-        <Card>
+        <Panel>
           <p className="text-sm text-neutral-600">
             No tickets yet. Questions about royalties, ISBNs, printing, or your book&apos;s status?{" "}
             <NewTicketButton variant="link" label="Raise a ticket" />
             .
           </p>
-        </Card>
+        </Panel>
       ) : (
-        <ul className="divide-y divide-neutral-200 overflow-hidden rounded-xl border border-neutral-200 bg-white">
+        <ul className="divide-y divide-neutral-100 overflow-hidden rounded-2xl border border-neutral-200 bg-white">
           {recent.map((ticket) => (
             <li key={ticket.id}>
               <Link
                 href={`/author/tickets/${ticket.id}`}
-                className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-3 hover:bg-neutral-50"
+                className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-3.5 hover:bg-neutral-50"
               >
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium">{ticket.subject}</span>
-                  <span className="block text-xs text-neutral-500">
+                  <span className="mt-0.5 block text-xs text-neutral-600">
                     {ticket.publicId} · {ticket.book?.title ?? GENERAL_TICKET_LABEL}
                   </span>
                 </span>
-                <span className="text-xs text-neutral-500">Updated {formatAge(ticket.updatedAt)}</span>
+                <span className="text-xs text-neutral-600">Updated {formatAge(ticket.updatedAt)}</span>
                 <StatusPill status={ticket.status} />
               </Link>
             </li>
@@ -175,10 +186,10 @@ function RecentTickets({ tickets }: { tickets: AuthorTicketRow[] | undefined }) 
 
 function CardSkeleton() {
   return (
-    <Card>
+    <Panel>
       <Skeleton className="h-3 w-24" />
       <Skeleton className="mt-3 h-8 w-20" />
       <Skeleton className="mt-3 h-4 w-40" />
-    </Card>
+    </Panel>
   );
 }

@@ -222,3 +222,11 @@ export const primaryButtonClass =
 
 export const inputClass =
   "block w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 aria-[invalid=true]:border-red-400";
+
+// Segmented filter buttons (author books and tickets). Same height as the
+// form controls, so a row of them lines up with anything beside it.
+export function filterTabClass(active: boolean): string {
+  return `min-h-11 rounded-lg px-3.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 ${
+    active ? "bg-emerald-700 font-medium text-white" : "text-neutral-700 hover:bg-neutral-100"
+  }`;
+}

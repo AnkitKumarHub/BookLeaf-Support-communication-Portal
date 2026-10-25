@@ -2,13 +2,16 @@
 
 import { useState } from "react";
 import useSWR from "swr";
-import { Badge, Card, Dash, EmptyState, ErrorState, Money, PageHeader, Skeleton, Text } from "@/components/ui";
+import { Badge, Dash, EmptyState, ErrorState, filterTabClass, Money, PageHeader, Skeleton, Text } from "@/components/ui";
 import type { Envelope } from "@/lib/api";
 import { DEMO_SELF_SERVICE } from "@/lib/flags";
 import { formatDate, isInProduction } from "@/lib/format";
 import { AUTHOR_BOOKS_KEY } from "@/lib/keys";
 import type { Book } from "@/lib/types";
 import { AddBookButton } from "@/components/add-book-dialog";
+
+const panelClass = "rounded-2xl border border-neutral-200 bg-white p-5";
+const labelClass = "text-xs font-semibold uppercase tracking-wide text-neutral-600";
 
 type Filter = "all" | "published" | "production";
 
@@ -38,7 +41,7 @@ export default function MyBooksPage() {
         actions={DEMO_SELF_SERVICE && <AddBookButton />}
       />
 
-      <div className="mb-4 flex gap-1" role="tablist" aria-label="Filter books">
+      <div className="mb-5 flex flex-wrap gap-1" role="tablist" aria-label="Filter books">
         {FILTERS.map((item) => (
           <button
             key={item.value}
@@ -46,9 +49,7 @@ export default function MyBooksPage() {
             role="tab"
             aria-selected={filter === item.value}
             onClick={() => setFilter(item.value)}
-            className={`rounded-md px-3 py-1.5 text-sm ${
-              filter === item.value ? "bg-neutral-900 text-white" : "text-neutral-600 hover:bg-neutral-100"
-            }`}
+            className={filterTabClass(filter === item.value)}
           >
             {item.label}
           </button>
@@ -78,18 +79,18 @@ export default function MyBooksPage() {
 function BookCard({ book }: { book: Book }) {
   const producing = isInProduction(book.status);
   return (
-    <Card>
+    <article className={panelClass}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold">{book.title}</h2>
-          <p className="text-sm text-neutral-500">
+          <p className="mt-0.5 text-sm text-neutral-600">
             <Text value={book.genre} /> · {book.sourceId}
           </p>
         </div>
         <Badge tone={producing ? "amber" : "green"}>{book.status}</Badge>
       </div>
 
-      <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3 lg:grid-cols-4">
+      <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-neutral-100 pt-5 text-sm sm:grid-cols-3 lg:grid-cols-4">
         <Item label="ISBN">
           <span className="font-mono text-xs">
             <Text value={book.isbn} />
@@ -126,7 +127,7 @@ function BookCard({ book }: { book: Book }) {
         </Item>
         <Item label="Available on" wide>
           {book.availableOn.length === 0 ? (
-            <span className="text-neutral-500">None yet</span>
+            <span className="text-neutral-600">None yet</span>
           ) : (
             <span className="flex flex-wrap gap-1">
               {book.availableOn.map((store) => (
@@ -136,15 +137,15 @@ function BookCard({ book }: { book: Book }) {
           )}
         </Item>
       </dl>
-    </Card>
+    </article>
   );
 }
 
 function Item({ label, wide, children }: { label: string; wide?: boolean; children: React.ReactNode }) {
   return (
     <div className={wide ? "col-span-2" : undefined}>
-      <dt className="text-xs text-neutral-500">{label}</dt>
-      <dd className="mt-0.5">{children ?? <Dash />}</dd>
+      <dt className={labelClass}>{label}</dt>
+      <dd className="mt-1">{children ?? <Dash />}</dd>
     </div>
   );
 }
