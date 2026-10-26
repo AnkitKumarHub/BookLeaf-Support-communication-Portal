@@ -64,7 +64,7 @@ function Books() {
     <>
       <PageHeader
         title="My Books"
-        description="Figures are as recorded by BookLeaf. Royalties are 80% of net profit, paid quarterly."
+        description="You can view your books here"
         onRefresh={() => void mutate()}
         refreshing={isValidating}
         actions={DEMO_SELF_SERVICE && <AddBookButton />}

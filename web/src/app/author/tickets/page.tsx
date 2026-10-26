@@ -22,7 +22,7 @@ export default function MyTicketsPage() {
     <>
       <PageHeader
         title="My Tickets"
-        description="Replies from the BookLeaf team appear here as soon as they are sent."
+        description="Replies from the BookLeaf team appear here."
         onRefresh={() => void mutate()}
         refreshing={isValidating}
         actions={<NewTicketButton />}
@@ -52,10 +52,9 @@ export default function MyTicketsPage() {
       )}
 
       {tickets && tickets.length === 0 && (
-        <EmptyState title={status === "all" ? "You have not raised any tickets" : "No tickets with this status"}>
-          {status === "all" && (
-            <NewTicketButton variant="link" label="Raise your first ticket" />
-          )}
+        <EmptyState title={status === "all" ? "No tickets" : "No tickets with this status"}>
+          {status === "all" &&
+            "A ticket belongs here only when a royalty, an ISBN, printing, or a book's status is a problem."}
         </EmptyState>
       )}
 

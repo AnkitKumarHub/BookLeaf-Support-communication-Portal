@@ -108,7 +108,9 @@ function TicketsTile({ tickets }: { tickets: AuthorTicketRow[] | undefined }) {
       <div>
         <p className="text-4xl font-semibold leading-none tabular-nums">{tickets.length}</p>
         <p className="mt-2 text-sm text-neutral-600">
-          {open} still open · {tickets.length - open} resolved or closed
+          {tickets.length === 0
+            ? "Nothing with the team"
+            : `${open} still open · ${tickets.length - open} resolved or closed`}
         </p>
       </div>
     </LinkTile>
@@ -182,8 +184,8 @@ function RecentTickets({ tickets }: { tickets: AuthorTicketRow[] | undefined }) 
         </div>
       ) : recent.length === 0 ? (
         <p className="text-sm text-neutral-600">
-          No tickets yet. Questions about royalties, ISBNs, printing, or your book&apos;s status?{" "}
-          <NewTicketButton variant="link" label="Raise a ticket" />.
+          Nothing open with the team. A ticket belongs here only when a royalty, an ISBN, printing, or a
+          book&apos;s status is a problem.
         </p>
       ) : (
         <ul className="-mx-2 divide-y divide-neutral-100">
