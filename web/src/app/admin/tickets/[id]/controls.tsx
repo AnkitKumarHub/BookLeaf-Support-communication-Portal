@@ -22,7 +22,7 @@ type Props = { ticket: AdminTicketDetail; refresh: () => Promise<unknown> };
 const labelRowClass = "mb-1.5 flex min-h-7 items-center justify-between gap-2";
 const labelClass = "text-xs font-semibold uppercase tracking-wide text-neutral-600";
 const quietActionClass =
-  "rounded px-1 py-1 text-xs font-medium text-emerald-700 underline underline-offset-2 hover:text-emerald-900 disabled:cursor-not-allowed disabled:opacity-50";
+  "rounded px-1 py-1 text-xs font-medium text-brand-deep underline underline-offset-2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-50";
 
 export function Controls({ ticket, refresh }: Props) {
   const status = useAction(refresh);
@@ -171,7 +171,7 @@ export function Controls({ ticket, refresh }: Props) {
               <>
                 <span
                   aria-hidden
-                  className="flex size-6 items-center justify-center rounded-full bg-emerald-700 text-[0.625rem] font-semibold text-white"
+                  className="flex size-6 items-center justify-center rounded-full bg-brand text-[0.625rem] font-semibold text-ink"
                 >
                   {initials(ticket.assigneeName)}
                 </span>
@@ -274,14 +274,14 @@ function Triage({ ticket, refresh }: Props) {
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-600">AI confidence</p>
               <p className="mb-2 flex items-baseline gap-2">
                 <span className="text-3xl font-semibold tabular-nums leading-none">{percent}%</span>
-                <span className="text-sm text-neutral-500">of 100%</span>
+                <span className="text-sm text-neutral-500"></span>
               </p>
               <span className="flex gap-1" role="img" aria-label={`${percent} percent confidence`}>
                 {[0, 1, 2, 3, 4].map((tile) => (
                   <Tile key={tile} fill={Math.min(1, Math.max(0, percent / 20 - tile))} />
                 ))}
               </span>
-              <p className="mt-1.5 text-[0.6875rem] text-neutral-600">Each tile is 20%.</p>
+            
             </div>
           )}
 
@@ -318,7 +318,7 @@ function Triage({ ticket, refresh }: Props) {
 function Tile({ fill }: { fill: number }) {
   return (
     <span aria-hidden className="h-2 flex-1 overflow-hidden rounded-sm bg-neutral-200">
-      <span className="block h-full bg-emerald-700" style={{ width: `${fill * 100}%` }} />
+      <span className="block h-full bg-brand" style={{ width: `${fill * 100}%` }} />
     </span>
   );
 }

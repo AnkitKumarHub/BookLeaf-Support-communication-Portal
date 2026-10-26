@@ -23,7 +23,7 @@ export default function AuthorTicketPage({ params }: PageProps<"/author/tickets/
   if (error && toApiError(error).status === 404) {
     return (
       <EmptyState title="Ticket not found">
-        <Link href="/author/tickets" className="font-medium text-emerald-700 hover:underline">
+        <Link href="/author/tickets" className="font-medium text-brand-deep hover:underline">
           Back to my tickets
         </Link>
       </EmptyState>
@@ -118,11 +118,11 @@ function Thread({ ticket }: { ticket: AuthorTicketDetail }) {
       </li>
 
       {ticket.replies.map((reply) => (
-        <li key={reply.id} className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-5">
+        <li key={reply.id} className="rounded-2xl border border-brand-line bg-brand-wash p-5">
           <div className="mb-2.5 flex flex-wrap items-center gap-2.5">
             <span
               aria-hidden
-              className="flex size-8 items-center justify-center rounded-full bg-emerald-700 text-xs font-semibold text-white"
+              className="flex size-8 items-center justify-center rounded-full bg-brand text-xs font-semibold text-ink"
             >
               BL
             </span>
@@ -182,7 +182,7 @@ function Attachments({ ticket, refresh }: { ticket: AuthorTicketDetail; refresh:
         <ul className="mt-3 space-y-2 text-sm">
           {ticket.attachments.map((file) => (
             <li key={file.id} className="flex justify-between gap-2">
-              <a href={file.url} target="_blank" rel="noreferrer" className="truncate text-emerald-800 hover:underline">
+              <a href={file.url} target="_blank" rel="noreferrer" className="truncate text-brand-deep hover:underline">
                 {file.name}
               </a>
               <span className="shrink-0 text-xs text-neutral-600">{formatBytes(file.sizeBytes)}</span>

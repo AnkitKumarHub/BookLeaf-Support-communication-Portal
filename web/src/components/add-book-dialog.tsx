@@ -68,7 +68,7 @@ export function AddBookButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-md bg-emerald-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-800"
+        className="rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-ink hover:bg-brand-strong"
       >
         Add book
       </button>

@@ -67,11 +67,11 @@ function LinkCard({ href, label, children }: { href: string; label: string; chil
   return (
     <Link
       href={href}
-      className={`group block transition hover:border-emerald-500 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 ${panelClass}`}
+      className={`group block transition hover:border-brand hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${panelClass}`}
     >
       <div className="flex items-start justify-between gap-2">
         <StatLabel>{label}</StatLabel>
-        <ArrowUpRight className="size-4 text-neutral-500 transition group-hover:text-emerald-700" aria-hidden />
+        <ArrowUpRight className="size-4 text-neutral-500 transition group-hover:text-brand-deep" aria-hidden />
       </div>
       {children}
     </Link>

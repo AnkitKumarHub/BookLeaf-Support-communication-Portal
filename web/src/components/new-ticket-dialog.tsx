@@ -43,8 +43,8 @@ export function NewTicketButton({ variant = "primary", label = "New ticket" }: {
         onClick={() => setOpen(true)}
         className={
           variant === "link"
-            ? "font-medium text-emerald-700 hover:underline"
-            : "rounded-md bg-emerald-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-800"
+            ? "font-medium text-brand-deep hover:underline"
+            : "rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-ink hover:bg-brand-strong"
         }
       >
         {label}
@@ -134,7 +134,7 @@ function NewTicketForm({ onBusyChange, onClose }: { onBusyChange: (busy: boolean
   if (partial) {
     return (
       <div className="space-y-4">
-        <p className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+        <p className="rounded-md bg-brand-wash px-3 py-2 text-sm text-brand-deep">
           {partial.ticket.publicId} was created and the BookLeaf team can see it.
         </p>
         <div>

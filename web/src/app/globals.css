@@ -1,8 +1,11 @@
 @import "tailwindcss";
 
+/* Palette: ink and paper, with one rose accent. Components use the names
+   below (bg-brand, text-brand-deep, text-ink …) so changing the brand colour
+   is a change to this file only. */
 :root {
-  --background: #f8f8f7;
-  --foreground: #1c1c1a;
+  --background: #faf8f7;
+  --foreground: #111111;
 }
 
 @theme inline {
@@ -10,6 +13,34 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+}
+
+@theme {
+  --color-ink: #111111;
+
+  /* The brand rose is a fill: black text on it is 6.6:1, but it is only 2.85:1
+     on white, so it must not carry text. Text in the brand colour uses
+     brand-deep (6.6:1 on white). */
+  --color-brand: #d88180;
+  --color-brand-strong: #cc6e6d;
+  --color-brand-deep: #9c3f3e;
+  --color-brand-wash: #fbeeee;
+  --color-brand-line: #f1d5d4;
+
+  /* Neutrals shifted warm so grey text and borders sit with the rose instead
+     of fighting it. Same names as Tailwind's neutral scale, so every existing
+     neutral-* class picks this up. */
+  --color-neutral-50: #faf8f7;
+  --color-neutral-100: #f3eeec;
+  --color-neutral-200: #e8e2df;
+  --color-neutral-300: #d9d2ce;
+  --color-neutral-400: #a8a09c;
+  --color-neutral-500: #7a726e;
+  --color-neutral-600: #5c5552;
+  --color-neutral-700: #453f3c;
+  --color-neutral-800: #2b2625;
+  --color-neutral-900: #111111;
+  --color-neutral-950: #0a0909;
 }
 
 body {

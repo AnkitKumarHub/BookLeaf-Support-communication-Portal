@@ -27,7 +27,7 @@ export default function SignupPage() {
       <main className="flex flex-1 items-center justify-center p-8 text-sm text-neutral-600">
         <p>
           Sign-up is not available.{" "}
-          <Link href="/login" className="font-medium text-emerald-700 hover:underline">
+          <Link href="/login" className="font-medium text-brand-deep hover:underline">
             Go to sign in
           </Link>
         </p>
@@ -72,7 +72,7 @@ export default function SignupPage() {
     <main className="flex flex-1 items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <p className="text-xs font-semibold uppercase tracking-widest text-emerald-700">BookLeaf Publishing</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-brand-deep">BookLeaf Publishing</p>
           <h1 className="mt-2 text-2xl font-semibold">Create an author account</h1>
           <p className="mt-1 text-sm text-neutral-500">For trying the portal. You can add your books after signing up.</p>
         </div>
@@ -95,7 +95,7 @@ export default function SignupPage() {
 
         <p className="mt-4 text-center text-sm text-neutral-600">
           Already have an account?{" "}
-          <Link href="/login" className="font-medium text-emerald-700 hover:underline">
+          <Link href="/login" className="font-medium text-brand-deep hover:underline">
             Sign in
           </Link>
         </p>

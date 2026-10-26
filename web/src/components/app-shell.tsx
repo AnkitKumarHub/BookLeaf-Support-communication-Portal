@@ -55,7 +55,7 @@ function Shell({ nav, role, children }: { nav: NavItem[]; role: Role; children: 
       <header className="border-b border-neutral-200 bg-white">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
           <Link href={home} className="text-sm font-semibold">
-            BookLeaf <span className="text-emerald-700">{role === "admin" ? "Ops" : "Authors"}</span>
+            BookLeaf <span className="text-brand-deep">{role === "admin" ? "Ops" : "Authors"}</span>
           </Link>
           <nav className="flex flex-1 flex-wrap gap-1">
             {nav.map((item) => (
@@ -65,7 +65,7 @@ function Shell({ nav, role, children }: { nav: NavItem[]; role: Role; children: 
                 aria-current={active === item.href ? "page" : undefined}
                 className={`rounded-md px-3 py-1.5 text-sm ${
                   active === item.href
-                    ? "bg-emerald-50 font-medium text-emerald-800"
+                    ? "bg-brand-wash font-medium text-ink"
                     : "text-neutral-600 hover:bg-neutral-100"
                 }`}
               >

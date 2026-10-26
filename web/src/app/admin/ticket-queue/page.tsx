@@ -114,7 +114,7 @@ function Queue() {
               <button
                 type="button"
                 onClick={() => router.replace(pathname)}
-                className="font-medium text-emerald-700 hover:underline"
+                className="font-medium text-brand-deep hover:underline"
               >
                 Clear filters
               </button>
@@ -210,7 +210,7 @@ function QueueRow({ row }: { row: AdminQueueRow }) {
       <td className="max-w-md px-4 py-3.5">
         <Link
           href={`/admin/tickets/${row.id}`}
-          className="block font-medium text-neutral-900 hover:text-emerald-800 hover:underline"
+          className="block font-medium text-neutral-900 hover:text-ink hover:underline"
         >
           {row.subject}
         </Link>
@@ -230,7 +230,7 @@ function QueueRow({ row }: { row: AdminQueueRow }) {
       </td>
       <td className="px-4 py-3.5 text-sm">
         {row.assignedToMe ? (
-          <span className="font-medium text-emerald-800">You</span>
+          <span className="font-medium text-brand-deep">You</span>
         ) : (
           (row.assigneeName ?? <span className="text-neutral-500">Unassigned</span>)
         )}
@@ -316,7 +316,7 @@ function Filters({
               setSearch("");
               onClear();
             }}
-            className="rounded px-1 py-1 text-xs font-medium text-emerald-700 underline underline-offset-2 hover:text-emerald-900"
+            className="rounded px-1 py-1 text-xs font-medium text-brand-deep underline underline-offset-2 hover:text-ink"
           >
             Clear all filters
           </button>

@@ -113,7 +113,7 @@ function OpenNow({ stats }: { stats: AdminStats }) {
       <p className="mt-2 text-sm text-neutral-600">unresolved, of {total} ever raised</p>
       <div className="mt-4 flex h-2 gap-0.5" aria-hidden>
         <div className="rounded-full bg-amber-500" style={{ width: `${openShare}%` }} />
-        <div className="flex-1 rounded-full bg-emerald-600" />
+        <div className="flex-1 rounded-full bg-brand" />
       </div>
       <p className="mt-2 flex flex-wrap justify-between gap-x-3 text-xs text-neutral-600">
         <span className="inline-flex items-center gap-1.5">
@@ -121,7 +121,7 @@ function OpenNow({ stats }: { stats: AdminStats }) {
           {open} open
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="size-2 rounded-full bg-emerald-600" aria-hidden />
+          <span className="size-2 rounded-full bg-brand" aria-hidden />
           {closed.all} resolved or closed
         </span>
       </p>
@@ -156,9 +156,9 @@ function Activity({
           {PERIODS.map((item) => (
             <label
               key={item.value}
-              className={`inline-flex min-h-9 cursor-pointer items-center rounded-lg px-3 text-sm has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-emerald-600 ${
+              className={`inline-flex min-h-9 cursor-pointer items-center rounded-lg px-3 text-sm has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ink ${
                 period === item.value
-                  ? "bg-emerald-700 font-medium text-white"
+                  ? "bg-brand font-medium text-ink"
                   : "text-neutral-700 hover:bg-neutral-100"
               }`}
             >
@@ -219,7 +219,7 @@ function WaitingOnUs({ rows, failed }: { rows: AdminQueueRow[] | undefined; fail
         </h2>
         <Link
           href="/admin/ticket-queue"
-          className="text-xs font-medium text-emerald-700 underline underline-offset-2 hover:text-emerald-900"
+          className="text-xs font-medium text-brand-deep underline underline-offset-2 hover:text-ink"
         >
           Open the queue →
         </Link>
@@ -310,7 +310,7 @@ function NewTickets({ daily }: { daily: AdminStats["tickets"]["daily"] }) {
                   <span className="text-[0.6875rem] tabular-nums text-neutral-600">{day.created}</span>
                 )}
                 <div
-                  className={`w-full rounded-t ${day.created > 0 ? "bg-emerald-600" : "bg-neutral-200"}`}
+                  className={`w-full rounded-t ${day.created > 0 ? "bg-brand" : "bg-neutral-200"}`}
                   style={{ height: day.created > 0 ? `${(day.created / max) * 80}%` : "2px" }}
                 />
               </div>
@@ -388,7 +388,7 @@ function AiAssistant({ stats }: { stats: AdminStats }) {
           aria-expanded={showDetails}
           aria-controls="ai-details"
           onClick={() => writeDetailsOpen(!showDetails)}
-          className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+          className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
         >
           {showDetails ? "Hide" : "Show"} models and tasks
           <ChevronDown className={`size-4 transition ${showDetails ? "rotate-180" : ""}`} aria-hidden />

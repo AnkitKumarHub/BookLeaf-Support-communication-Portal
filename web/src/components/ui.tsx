@@ -27,7 +27,7 @@ export function Text({ value }: { value: string | null }) {
 const STATUS_STYLES: Record<TicketStatus, string> = {
   open: "bg-sky-50 text-sky-800 ring-sky-200",
   in_progress: "bg-amber-50 text-amber-800 ring-amber-200",
-  resolved: "bg-emerald-50 text-emerald-800 ring-emerald-200",
+  resolved: "bg-brand-wash text-brand-deep ring-brand-line",
   closed: "bg-neutral-100 text-neutral-600 ring-neutral-200",
 };
 
@@ -101,7 +101,7 @@ export function CategoryLabel({
 export function Badge({ children, tone = "neutral" }: { children: ReactNode; tone?: "neutral" | "green" | "amber" }) {
   const tones = {
     neutral: "bg-neutral-100 text-neutral-700",
-    green: "bg-emerald-50 text-emerald-800",
+    green: "bg-brand-wash text-brand-deep",
     amber: "bg-amber-50 text-amber-800",
   };
   return (
@@ -153,7 +153,7 @@ export function ButtonLink({ href, children }: { href: string; children: ReactNo
   return (
     <Link
       href={href}
-      className="rounded-md bg-emerald-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-800"
+      className="rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-ink hover:bg-brand-strong"
     >
       {children}
     </Link>
@@ -218,15 +218,15 @@ export const buttonClass =
   "rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50";
 
 export const primaryButtonClass =
-  "rounded-md bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50";
+  "rounded-md bg-brand px-4 py-2 text-sm font-medium text-ink hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-50";
 
 export const inputClass =
-  "block w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 aria-[invalid=true]:border-red-400";
+  "block w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-ink focus:ring-2 focus:ring-brand/30 aria-[invalid=true]:border-red-400";
 
 // Segmented filter buttons (author books and tickets). Same height as the
 // form controls, so a row of them lines up with anything beside it.
 export function filterTabClass(active: boolean): string {
-  return `min-h-11 rounded-lg px-3.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 ${
-    active ? "bg-emerald-700 font-medium text-white" : "text-neutral-700 hover:bg-neutral-100"
+  return `min-h-11 rounded-lg px-3.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${
+    active ? "bg-brand font-medium text-ink" : "text-neutral-700 hover:bg-neutral-100"
   }`;
 }

@@ -83,7 +83,7 @@ export function Composer({ ticket, refresh }: { ticket: AdminTicketDetail; refre
   const tabClass = (active: boolean) =>
     `-mb-px border-b-2 px-1 py-3 text-sm ${
       active
-        ? "border-emerald-700 font-semibold text-emerald-900"
+        ? "border-brand font-semibold text-ink"
         : "border-transparent font-medium text-neutral-600 hover:text-neutral-900"
     }`;
 
@@ -148,7 +148,7 @@ export function Composer({ ticket, refresh }: { ticket: AdminTicketDetail; refre
         ) : null}
 
         {reply && sent && !text ? (
-          <p className="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+          <p className="mb-3 rounded-lg bg-brand-wash px-3 py-2 text-sm text-ink">
             Reply posted. {ticket.authorName} sees it on their ticket now.
           </p>
         ) : null}

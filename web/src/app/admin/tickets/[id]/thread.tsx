@@ -45,7 +45,7 @@ export function Thread({ ticket }: { ticket: AdminTicketDetail }) {
                   href={file.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-emerald-800 hover:bg-neutral-50"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-brand-deep hover:bg-neutral-50"
                 >
                   <Paperclip className="size-3.5" aria-hidden />
                   {file.name}
@@ -58,11 +58,11 @@ export function Thread({ ticket }: { ticket: AdminTicketDetail }) {
 
       {items.map((item) =>
         item.kind === "reply" ? (
-          <li key={`reply-${item.id}`} className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-5">
+          <li key={`reply-${item.id}`} className="rounded-2xl border border-brand-line bg-brand-wash p-5">
             <div className="mb-2.5 flex flex-wrap items-center gap-2.5">
               <span
                 aria-hidden
-                className="flex size-8 items-center justify-center rounded-full bg-emerald-700 text-xs font-semibold text-white"
+                className="flex size-8 items-center justify-center rounded-full bg-brand text-xs font-semibold text-ink"
               >
                 BL
               </span>
@@ -75,7 +75,7 @@ export function Thread({ ticket }: { ticket: AdminTicketDetail }) {
               </span>
             </div>
             <p className="whitespace-pre-wrap break-words text-[0.9375rem] leading-relaxed">{item.body}</p>
-            <p className="mt-3 border-t border-emerald-200/70 pt-2.5 text-xs text-neutral-700">
+            <p className="mt-3 border-t border-brand-line pt-2.5 text-xs text-neutral-700">
               {ticket.authorName} sees this on their ticket in the author portal.
             </p>
           </li>
