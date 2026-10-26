@@ -1,4 +1,4 @@
-<div align="center">
+
 
 # BookLeaf
 
@@ -8,14 +8,14 @@ An author portal and an ops portal over one REST API. AI classifies every incomi
 
 **Live app:** [book-leaf-support-communication-por.vercel.app](https://book-leaf-support-communication-por.vercel.app/login) · **API:** [bookleaf-support-communication-portal.onrender.com](https://bookleaf-support-communication-portal.onrender.com)
 
-[![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org)
-[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![Express](https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white)](https://expressjs.com)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-SQL-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org)
-[![Inngest](https://img.shields.io/badge/Inngest-jobs-000000)](https://www.inngest.com)
+![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![Express](https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-SQL-4169E1?logo=postgresql&logoColor=white)
+![Inngest](https://img.shields.io/badge/Inngest-jobs-000000)
 
-</div>
+
 
 ---
 
@@ -276,7 +276,7 @@ ImageKit stores bytes. The browser never receives a provider secret.
 
 ### Database
 
-<img src="SQL-Schema.png" alt="BookLeaf schema: authors, books, users, admins, tickets, messages, attachments, events, AI runs, and refresh tokens" width="720" />
+![BookLeaf schema: authors, books, users, admins, tickets, messages, attachments, events, AI runs, and refresh tokens](SQL-Schema.png)
 
 | Table | Role |
 | --- | --- |
@@ -458,24 +458,20 @@ Cookies are `Secure`, `HttpOnly`, `SameSite=None` in both environments; there is
 
 Things I decided not to build, and what each would need.
 
-| Limitation | Why, and what production would need |
-|---|---|
-| **Rate limits are in memory** | Login (10 per 15 min), ticket create (20/hour), regenerate (5/ticket/hour) are per-process, so several API instances multiply the allowance. Needs Redis or the database |
+| Limitation                            | Why, and what production would need                                                                                                                                                                                   |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Rate limits are in memory**         | Login (10 per 15 min), ticket create (20/hour), regenerate (5/ticket/hour) are per-process, so several API instances multiply the allowance. Needs Redis or the database                                              |
 | **The live-update bus is in-process** | The SSE event bus is a Node `EventEmitter`, so with two API instances a browser only hears events from the instance it is connected to. Needs Postgres `LISTEN/NOTIFY` or Redis pub/sub behind the same two functions |
-| **No outbox** | The Inngest event is sent after the commit. If that send fails the ticket stays pending until an admin presses Retry triage or Generate draft. A transactional outbox is the production answer |
-| **No malware scanning** | Uploads are checked by MIME type and magic bytes (JPEG, PNG, WebP, PDF, 2 MB, two per ticket) but not scanned. Needs a scanning service |
-| **No email** | Authors only see replies inside the portal |
-| **One-shot tickets** | An author submits one query; only admins write public replies, so a reply cannot reopen a ticket |
-| **One admin** | A ticket can be assigned to the acting admin or unassigned; there is no assign-to-someone-else |
-| **No draft autosave** | Composer text lives in the browser until Send, so leaving the page loses it. Deliberate: autosaving would have meant more moving parts than the feature is worth |
-| **No automated test suite** | Verification was manual against a running API and the seven assignment fixtures. Given more time I would start with the ticket lifecycle and the AI failure paths |
-| **CSRF is deferred** | Cookies are `SameSite=None` for cross-origin use, with a strict CORS allowlist. A production build would add a CSRF token on mutating routes |
-| **Exchange rate is fixed** | Dashboard costs convert at `USD_TO_INR` (default 85), not a live rate |
+| **No outbox**                         | The Inngest event is sent after the commit. If that send fails the ticket stays pending until an admin presses Retry triage or Generate draft. A transactional outbox is the production answer                        |
+| **No malware scanning**               | Uploads are checked by MIME type and magic bytes (JPEG, PNG, WebP, PDF, 2 MB, two per ticket) but not scanned. Needs a scanning service                                                                               |
+| **No email**                          | Authors only see replies inside the portal                                                                                                                                                                            |
+| **One-shot tickets**                  | An author submits one query; only admins write public replies, so a reply cannot reopen a ticket                                                                                                                      |
+| **One admin**                         | A ticket can be assigned to the acting admin or unassigned; there is no assign-to-someone-else                                                                                                                        |
+| **No draft autosave**                 | Composer text lives in the browser until Send, so leaving the page loses it. Deliberate: autosaving would have meant more moving parts than the feature is worth                                                      |
+| **No automated test suite**           | Verification was manual against a running API and the seven assignment fixtures. Given more time I would start with the ticket lifecycle and the AI failure paths                                                     |
+| **CSRF is deferred**                  | Cookies are `SameSite=None` for cross-origin use, with a strict CORS allowlist. A production build would add a CSRF token on mutating routes                                                                          |
+| **Exchange rate is fixed**            | Dashboard costs convert at `USD_TO_INR` (default 95), not a live rate                                                                                                                                                 |
 
-See [WRITEUP.md](WRITEUP.md) for what I prioritised and what I would do next.
 
-<div align="center">
 
 **BookLeaf** — Next.js, Express, and PostgreSQL for author support, with a human sending every reply.
-
-</div>
