@@ -1,26 +1,65 @@
-# BookLeaf Author Support & Communication Portal
+<div align="center">
 
-An author portal and an ops portal over one REST API, with AI that classifies every incoming
-ticket and drafts a reply for a human to review. A person sends every message that reaches an
-author; the AI only suggests.
+# BookLeaf
 
-- **Live demo:** _TODO: add the Vercel URL before submitting_
-- **API:** _TODO: add the Render or Railway URL_ — interactive docs at `<api-url>/docs`
-- **Test logins:** [Demo accounts](#demo-accounts)
+**Author support, from the ticket to a reply a human sends.**
+
+An author portal and an ops portal over one REST API. AI classifies every incoming ticket and drafts a reply for review. A person sends every message that reaches an author; the AI only suggests.
+
+**Live app:** [book-leaf-support-communication-por.vercel.app](https://book-leaf-support-communication-por.vercel.app/login) · **API:** [bookleaf-support-communication-portal.onrender.com](https://bookleaf-support-communication-portal.onrender.com)
+
+[![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Express](https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white)](https://expressjs.com)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-SQL-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org)
+[![Inngest](https://img.shields.io/badge/Inngest-jobs-000000)](https://www.inngest.com)
+
+</div>
 
 ---
 
 ## Contents
 
+- [Reviewer quick start](#reviewer-quick-start)
 - [What it does](#what-it-does)
 - [Demo accounts](#demo-accounts)
+- [Try the app](#try-the-app)
 - [Run it locally](#run-it-locally)
 - [Environment variables](#environment-variables)
 - [Architecture and the decisions behind it](#architecture-and-the-decisions-behind-it)
+- [Database](#database)
 - [AI integration](#ai-integration)
 - [API documentation](#api-documentation)
 - [Deployment](#deployment)
 - [Known limitations](#known-limitations)
+
+---
+
+## Reviewer quick start
+
+**Goal:** open the live app, sign in with a demo account, and walk one ticket from the author side and the admin side. Local setup is in [Run it locally](#run-it-locally).
+
+| | |
+| --- | --- |
+| **Web** | <https://book-leaf-support-communication-por.vercel.app/login> |
+| **API** | <https://bookleaf-support-communication-portal.onrender.com> |
+| **API docs** | <https://bookleaf-support-communication-portal.onrender.com/docs> |
+| **Health** | <https://bookleaf-support-communication-portal.onrender.com/health> |
+
+Sign in with the [demo accounts](#demo-accounts) below. The API on Render may take a few seconds to wake up on the first request.
+
+**Run it locally** (optional):
+
+| Step | Action |
+| --- | --- |
+| 1 | Install [Node.js 22+](https://nodejs.org/) and [pnpm](https://pnpm.io/) 11. You need a PostgreSQL database and an OpenAI API key. ImageKit keys are optional |
+| 2 | Clone the repo. Copy `api/.env.example` to `api/.env`. Set `DATABASE_URL`, `WEB_ORIGIN`, and two different JWT secrets. Set `SEED_AUTHOR_PASSWORD=author-demo` and `SEED_ADMIN_PASSWORD=admin-demo` |
+| 3 | From `api/`: `pnpm install`, `pnpm db:migrate`, `pnpm db:reset --yes`, `pnpm dev` — API on `http://localhost:4000` |
+| 4 | In a second terminal: `npx inngest-cli@latest dev -u http://localhost:4000/api/inngest --no-discovery` |
+| 5 | Copy `web/.env.local.example` to `web/.env.local` (`NEXT_PUBLIC_API_BASE_URL=http://localhost:4000/api/v1`) |
+| 6 | From `web/`: `pnpm install`, `pnpm dev` — open `http://localhost:3000` |
+| 7 | Sign in as Priya, open **My Books**, raise a ticket, then sign in as admin in a private window and send a reply |
 
 ---
 
@@ -61,12 +100,12 @@ A ticket with no AI result shows **AI pending** or **AI unavailable**, never a m
 Every account comes from the seed script, which loads the dataset supplied with the assignment.
 
 | Role | Email | Password |
-|---|---|---|
-| Admin | `admin@bookleaf.dev` | _TODO: the value of `SEED_ADMIN_PASSWORD`_ |
-| Author (2 books, one with ₹0.00 pending) | `priya.sharma@email.com` | _TODO: the value of `SEED_AUTHOR_PASSWORD`_ |
-| Author (3 books, one in production) | `sneha.kulkarni@email.com` | same author password |
+| --- | --- | --- |
+| Admin | `admin@bookleaf.dev` | `admin-demo` |
+| Author (2 books, one with ₹0.00 pending) | `priya.sharma@email.com` | `author-demo` |
+| Author (3 books, one in production) | `sneha.kulkarni@email.com` | `author-demo` |
 
-All ten authors from the dataset can sign in with the same author password:
+All ten authors from the dataset can sign in with `author-demo`:
 `priya.sharma@email.com`, `rohit.kapoor@email.com`, `ananya.reddy@email.com`,
 `vikram.joshi@email.com`, `meera.nair@email.com`, `arjun.malhotra@email.com`,
 `sneha.kulkarni@email.com`, `farhan.sheikh@email.com`, `kavita.deshmukh@email.com`,
@@ -81,14 +120,36 @@ window. An admin reply reaches the author's open ticket in about a second.
 
 ---
 
+## Try the app
+
+| Surface | URL |
+| --- | --- |
+| **Live web app** | <https://book-leaf-support-communication-por.vercel.app/login> |
+| **Live API** | <https://bookleaf-support-communication-portal.onrender.com> |
+| **Live API docs** | <https://bookleaf-support-communication-portal.onrender.com/docs> |
+| **Live health** | <https://bookleaf-support-communication-portal.onrender.com/health> |
+| **Local web app** | <http://localhost:3000> |
+| **Local API** | <http://localhost:4000> |
+
+### What to click
+
+1. Open the [live login page](https://book-leaf-support-communication-por.vercel.app/login) and sign in as **priya.sharma@email.com** with password **author-demo**.
+2. Open **My Books**. Priya has two books, and one shows ₹0.00 pending.
+3. Raise a ticket: pick a book, add a subject and description, and send it. It should show under **My Tickets** straight away, with AI still pending.
+4. In a private window, sign in as **admin@bookleaf.dev** with password **admin-demo**. The queue puts unresolved tickets first, then higher priority, then the ones that have waited longest.
+5. Open Priya's ticket. You can override the category or priority, edit the draft, and send the reply. Priya's open ticket should show that reply without a refresh.
+6. Sign out. An author session cannot open the admin queue.
+
+---
+
 ## Run it locally
 
 **You need:** Node 22, pnpm 11, a PostgreSQL database, and an OpenAI API key. ImageKit keys are
 optional (without them attachments answer `503` and everything else works).
 
 ```bash
-git clone <repo-url>
-cd Book
+git clone https://github.com/AnkitKumarHub/BookLeaf-Support-communication-Portal.git
+cd BookLeaf-Support-communication-Portal
 ```
 
 ### 1. API
@@ -163,7 +224,7 @@ In `web/`: `pnpm dev`, `pnpm build`, `pnpm start`, `pnpm lint`.
 | `DATABASE_URL` | Yes | PostgreSQL connection string |
 | `WEB_ORIGIN` | Yes | Exact origin of the web app. The only allowed CORS origin |
 | `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` | Yes | Two different long random strings |
-| `SEED_AUTHOR_PASSWORD`, `SEED_ADMIN_PASSWORD` | For seeding | The demo passwords the seed creates |
+| `SEED_AUTHOR_PASSWORD`, `SEED_ADMIN_PASSWORD` | For seeding | Live demo uses `author-demo` and `admin-demo`. Set the same values locally so those logins work |
 | `OPENAI_API_KEY` | For AI | Leave blank and the app still works; AI results show as unavailable |
 | `OPENAI_MODEL` | No | Default `gpt-4o-mini` |
 | `INNGEST_DEV` | Local only | `1` locally. **Never set it in production** |
@@ -206,12 +267,31 @@ Browser ──HTTPS──▶ Next.js (Vercel)
                           └──▶ ImageKit    (file bytes)
 ```
 
-**`/web` and `/api` are separate apps** with their own `package.json`. The browser calls the API
+`/web` **and** `/api` **are separate apps** with their own `package.json`. The browser calls the API
 directly; there is no Next.js proxy hiding the API, so the auth story is the same locally and in
 production.
 
 **PostgreSQL is the source of truth.** Inngest retries background work, OpenAI only suggests,
 ImageKit stores bytes. The browser never receives a provider secret.
+
+### Database
+
+<img src="SQL-Schema.png" alt="BookLeaf schema: authors, books, users, admins, tickets, messages, attachments, events, AI runs, and refresh tokens" width="720" />
+
+| Table | Role |
+| --- | --- |
+| **authors** | People from the sample dataset: name, email, phone, city, joined date |
+| **admins** | Ops staff. The seed creates one admin |
+| **users** | Login accounts. An author row points at `authors`; an admin row points at `admins`. Passwords are stored as bcrypt hashes |
+| **books** | Catalogue and royalty fields for one author. A book always belongs to that author |
+| **tickets** | A support query. AI category and priority sit beside the human overrides. `book_id` is empty for a general query |
+| **ticket_messages** | Public replies and internal notes. Visibility decides what an author can see |
+| **ticket_attachments** | File metadata for a ticket. The bytes live in ImageKit |
+| **ticket_events** | Audit trail for status changes, assignment, and overrides |
+| **ai_runs** | One row per triage or draft attempt: model, prompt version, token counts, error, and whether a draft was flagged |
+| **refresh_tokens** | One row per refresh session: token id, expiry, and an optional `revoked_at` |
+
+Authors only read their own books and tickets. Admin routes are the ones that read every author.
 
 ### Decisions worth explaining
 
@@ -281,7 +361,7 @@ database**. Policy text is six static sections, and each request gets only the s
 
 - **Triage:** the general section plus at most two keyword-matched sections.
 - **Draft:** the section for the ticket's category (override, else AI category), plus the general
-  section with the tone rules, plus at most one more keyword-matched section. Three at most.
+section with the tone rules, plus at most one more keyword-matched section. Three at most.
 
 Each request also carries the ticket subject and description, the linked book's stored facts, and
 previous public replies. Phone numbers, other books, and internal notes are never sent.
@@ -311,12 +391,12 @@ never logged.
 ### Cost control
 
 - No AI call during ticket creation, queue loads, or refetches. One triage call per job version,
-  one draft call per generate or regenerate.
+one draft call per generate or regenerate.
 - The description is cut to 6,000 characters, output is capped at 700 tokens, and only the matching
-  policy sections and one book are sent.
+policy sections and one book are sent.
 - Regeneration is capped at five per ticket per hour.
 - `input_tokens`, `output_tokens`, `model` and `prompt_version` are stored on every run, which is
-  what the dashboard turns into a rupee figure.
+what the dashboard turns into a rupee figure.
 
 **Measured on the demo dataset:** 15 tickets, 31 AI runs, 26,523 tokens — about **₹0.46 in total,
 or ₹0.03 per ticket** at `gpt-4o-mini` list prices. Prices live in
@@ -330,7 +410,7 @@ priority, and how often a draft was **flagged** (a button in the composer marks 
 enough). None of these need extra work from the admin, and all three are honest signals of whether
 the AI is helping.
 
-**Why `gpt-4o-mini`:** it is one of the inexpensive models the assignment suggests and it supports
+**Why** `gpt-4o-mini`**:** it is one of the inexpensive models the assignment suggests and it supports
 Structured Outputs, which removes a whole class of parse-and-repair failures. The model is only an
 environment variable (`OPENAI_MODEL`); swapping it changes no routes and no components.
 
@@ -340,9 +420,9 @@ environment variable (`OPENAI_MODEL`); swapping it changes no routes and no comp
 
 The spec is generated from the code and served by the API itself:
 
-- **`GET /docs`** — interactive reference (Scalar). Call `POST /api/v1/auth/login` from the page and
-  the cookie is sent on every subsequent "Try it".
-- **`GET /openapi.json`** — the OpenAPI 3.1 document.
+- `GET /docs` — interactive reference (Scalar). Call `POST /api/v1/auth/login` from the page and
+the cookie is sent on every subsequent "Try it".
+- `GET /openapi.json` — the OpenAPI 3.1 document.
 
 All 27 routes under `/api/v1` are documented, including request and response shapes and every error
 code. `GET /health` and the Inngest handler sit outside `/api/v1`.
@@ -360,11 +440,13 @@ Web on Vercel, API on Render or Railway, PostgreSQL on Neon, plus an Inngest app
 
 1. **Database:** create it, set `DATABASE_URL`, run `pnpm db:migrate`, then `pnpm db:reset --yes`.
 2. **API:** build `pnpm build`, start `pnpm start`. Set every required variable above. Leave
+
    `INNGEST_DEV` unset and set the Inngest event and signing keys.
 3. **Inngest:** point the app at `https://<api-url>/api/inngest` and sync.
 4. **Web:** set `NEXT_PUBLIC_API_BASE_URL` to `https://<api-url>/api/v1` and deploy.
 5. **Back on the API:** set `WEB_ORIGIN` to the exact Vercel origin and redeploy.
 6. **Check:** sign in on the live site and confirm `/auth/me` returns `200`. Cross-site cookies fail
+
    closed, so if `WEB_ORIGIN` is wrong nothing will work.
 
 Cookies are `Secure`, `HttpOnly`, `SameSite=None` in both environments; there is no
@@ -391,3 +473,9 @@ Things I decided not to build, and what each would need.
 | **Exchange rate is fixed** | Dashboard costs convert at `USD_TO_INR` (default 85), not a live rate |
 
 See [WRITEUP.md](WRITEUP.md) for what I prioritised and what I would do next.
+
+<div align="center">
+
+**BookLeaf** — Next.js, Express, and PostgreSQL for author support, with a human sending every reply.
+
+</div>
