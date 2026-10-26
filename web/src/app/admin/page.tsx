@@ -372,14 +372,33 @@ function subscribeDetails(listener: () => void) {
   };
 }
 
+// The one sentence an admin should read before the four figures. A rate of 0%
+// is left out: on a handful of tickets it means nobody has corrected anything
+// yet, not that the model is never wrong.
+function aiFinding(stats: AdminStats): string | null {
+  const { avgConfidence, classified, overridden, drafts } = stats.quality;
+  if (classified === 0 && drafts.total === 0) return null;
+  if (drafts.flagged > 0) {
+    return `${drafts.flagged} of ${drafts.total} drafts flagged as not good enough.`;
+  }
+  if (overridden.either > 0) {
+    return `Admins changed ${overridden.either} of ${classified} classifications.`;
+  }
+  if (avgConfidence !== null) {
+    return `No corrections yet, so ${formatPercent(avgConfidence)} is only the model's own score.`;
+  }
+  return "No corrections yet.";
+}
+
 function AiAssistant({ stats }: { stats: AdminStats }) {
   const { tokens, byModel, byTask, avgCostPerTicketInr, usdToInr, unpricedModels } = stats.ai;
   const { avgConfidence, classified, overridden, drafts, recentFlagged } = stats.quality;
   const showDetails = useSyncExternalStore(subscribeDetails, readDetailsOpen, () => false);
+  const finding = aiFinding(stats);
 
   return (
     <section aria-labelledby="ai" className={panelClass}>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 id="ai" className={labelClass}>
           AI assistant
         </h2>
@@ -388,48 +407,53 @@ function AiAssistant({ stats }: { stats: AdminStats }) {
           aria-expanded={showDetails}
           aria-controls="ai-details"
           onClick={() => writeDetailsOpen(!showDetails)}
-          className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
         >
-          {showDetails ? "Hide" : "Show"} models and tasks
-          <ChevronDown className={`size-4 transition ${showDetails ? "rotate-180" : ""}`} aria-hidden />
+          {showDetails ? "Hide" : "Show"} cost breakdown
+          <ChevronDown
+            className={`size-4 transition motion-reduce:transition-none ${showDetails ? "rotate-180" : ""}`}
+            aria-hidden
+          />
         </button>
       </div>
 
-      {/* Counts first, rates second: "0%" on a handful of tickets means "nobody
-          has corrected anything yet", not "the model is never wrong". */}
-      <dl className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        <div>
-          <dt className="text-sm text-neutral-600">Overridden by an admin</dt>
+      {finding && <p className="mt-3 text-sm text-neutral-800">{finding}</p>}
+
+      <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-neutral-200 pt-5 xl:grid-cols-4 xl:gap-0 xl:divide-x xl:divide-neutral-200">
+        <div className="xl:pr-5">
+          <dt className="min-h-10 text-sm text-neutral-600 xl:min-h-0">Overridden by an admin</dt>
           <dd className="mt-1 text-3xl font-semibold leading-none tabular-nums">{overridden.either}</dd>
           <dd className="mt-1.5 text-xs text-neutral-600">
-            of {classified} classified
-            {overridden.rate !== null && ` · ${formatPercent(overridden.rate)}`} · {overridden.category} category,{" "}
-            {overridden.priority} priority
+            {overridden.either > 0
+              ? `${overridden.category} category, ${overridden.priority} priority`
+              : `of ${classified} classified`}
           </dd>
         </div>
-        <div>
-          <dt className="text-sm text-neutral-600">Drafts flagged</dt>
-          <dd className="mt-1 text-3xl font-semibold leading-none tabular-nums">{drafts.flagged}</dd>
-          <dd className="mt-1.5 text-xs text-neutral-600">
-            of {drafts.total} drafts{drafts.rate !== null && ` · ${formatPercent(drafts.rate)}`} marked not good enough
+        <div className="xl:px-5">
+          <dt className="min-h-10 text-sm text-neutral-600 xl:min-h-0">Drafts flagged</dt>
+          <dd
+            className={`mt-1 text-3xl font-semibold leading-none tabular-nums ${drafts.flagged > 0 ? "text-red-700" : ""}`}
+          >
+            {drafts.flagged}
           </dd>
+          <dd className="mt-1.5 text-xs text-neutral-600">of {drafts.total} drafts</dd>
         </div>
-        <div>
-          <dt className="text-sm text-neutral-600">Average confidence</dt>
+        <div className="xl:px-5">
+          <dt className="min-h-10 text-sm text-neutral-600 xl:min-h-0">Average confidence</dt>
           <dd className="mt-1 text-3xl font-semibold leading-none tabular-nums">
             {avgConfidence === null ? <Dash /> : formatPercent(avgConfidence)}
           </dd>
           <dd className="mt-1.5 text-xs text-neutral-600">
-            the model&apos;s own score · read it against the overrides
+            {avgConfidence === null ? "not scored yet" : "model's own score"}
           </dd>
         </div>
-        <div>
-          <dt className="text-sm text-neutral-600">Cost per ticket</dt>
+        <div className="xl:pl-5">
+          <dt className="min-h-10 text-sm text-neutral-600 xl:min-h-0">Cost per ticket</dt>
           <dd className="mt-1 text-3xl font-semibold leading-none tabular-nums">
             {avgCostPerTicketInr === null ? <Dash /> : formatCostInr(avgCostPerTicketInr)}
           </dd>
           <dd className="mt-1.5 text-xs text-neutral-600">
-            average of classify + draft · {formatCostInr(tokens.all.costInr)} all time
+            {avgCostPerTicketInr === null ? "no runs yet" : `${formatCostInr(tokens.all.costInr)} in all`}
           </dd>
         </div>
       </dl>
@@ -459,25 +483,8 @@ function AiAssistant({ stats }: { stats: AdminStats }) {
       )}
 
       {showDetails && (
-        <div id="ai-details" className="mt-5 border-t border-neutral-100 pt-5">
-          <div className="grid gap-5 lg:grid-cols-2">
-            <div>
-              <Label>Models in use</Label>
-              {byModel.length === 0 ? (
-                <p className="mt-3 text-sm text-neutral-600">No AI runs yet.</p>
-              ) : (
-                <UsageTable rows={byModel.map((row) => ({ name: row.model, mono: true, ...row }))} />
-              )}
-            </div>
-            <div>
-              <Label>By task</Label>
-              {byTask.length === 0 ? (
-                <p className="mt-3 text-sm text-neutral-600">No AI runs yet.</p>
-              ) : (
-                <UsageTable rows={byTask.map((row) => ({ name: TASK_LABELS[row.task], mono: false, ...row }))} />
-              )}
-            </div>
-          </div>
+        <div id="ai-details" className="mt-5 border-t border-neutral-200 pt-5">
+          <AiSpend byModel={byModel} byTask={byTask} total={tokens.all} />
           <p className="mt-3 text-xs text-neutral-600">
             Estimated from stored token counts at each model&apos;s list price, converted at ₹{usdToInr} per US$.
             {unpricedModels.length > 0 && ` No price set for ${unpricedModels.join(", ")}.`}
@@ -488,45 +495,135 @@ function AiAssistant({ stats }: { stats: AdminStats }) {
   );
 }
 
-function UsageTable({
-  rows,
+// One table for both cuts of the same runs. Tasks show where the money went;
+// a second model list appears only when more than one model was used, so a
+// single model is not repeated as its own table beside the tasks.
+function AiSpend({
+  byModel,
+  byTask,
+  total,
 }: {
-  rows: { name: string; mono: boolean; runs: number; inputTokens: number; outputTokens: number; costInr: number | null }[];
+  byModel: AdminStats["ai"]["byModel"];
+  byTask: AdminStats["ai"]["byTask"];
+  total: AdminStats["ai"]["tokens"]["all"];
 }) {
+  const tasks = [...byTask].sort((a, b) => b.costInr - a.costInr || b.runs - a.runs);
+  const maxCost = Math.max(0, ...tasks.map((row) => row.costInr));
+  const leadingCost = tasks.filter((row) => row.costInr === maxCost).length === 1 ? maxCost : null;
+  const runs = byModel.reduce((sum, row) => sum + row.runs, 0);
+  const oneModel = byModel.length === 1 ? byModel[0] : null;
+
+  if (tasks.length === 0 && byModel.length === 0) {
+    return <p className="text-sm text-neutral-600">No AI runs yet.</p>;
+  }
+
   return (
-    <div className="mt-3 overflow-x-auto">
-      <table className="w-full min-w-md text-sm">
-        <thead className={`text-left ${labelClass}`}>
-          <tr>
-            <th scope="col" className="pb-2.5 font-semibold" />
-            <th scope="col" className="pb-2.5 text-right font-semibold">
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-xs text-neutral-600">
+            <th scope="col" className="pb-2 text-left font-medium">
+              Task
+            </th>
+            <th scope="col" className="pb-2 text-right font-medium">
               Runs
             </th>
-            <th scope="col" className="pb-2.5 text-right font-semibold">
-              Input
+            <th scope="col" className="hidden pb-2 text-right font-medium sm:table-cell">
+              Tokens
             </th>
-            <th scope="col" className="pb-2.5 text-right font-semibold">
-              Output
-            </th>
-            <th scope="col" className="pb-2.5 text-right font-semibold">
+            <th scope="col" className="pb-2 pl-3 text-right font-medium">
               Cost
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-neutral-100">
-          {rows.map((row) => (
-            <tr key={row.name}>
-              <td className={`py-2.5 ${row.mono ? "font-mono text-xs" : ""}`}>{row.name}</td>
+        <tbody>
+          {tasks.map((row) => (
+            <tr key={row.task} className="border-t border-neutral-100">
+              <th scope="row" className="w-[46%] py-2.5 pr-3 text-left font-normal">
+                <span className="flex flex-col items-start gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+                  <span>{TASK_LABELS[row.task]}</span>
+                  <CostShare cost={row.costInr} max={maxCost} lead={row.costInr === leadingCost} />
+                </span>
+                <TokenLine input={row.inputTokens} output={row.outputTokens} />
+              </th>
               <td className="py-2.5 text-right tabular-nums">{formatCount(row.runs)}</td>
-              <td className="py-2.5 text-right tabular-nums">{formatCount(row.inputTokens)}</td>
-              <td className="py-2.5 text-right tabular-nums">{formatCount(row.outputTokens)}</td>
-              <td className="py-2.5 text-right tabular-nums">
-                {row.costInr === null ? <Dash /> : formatCostInr(row.costInr)}
-              </td>
+              <TokenCell input={row.inputTokens} output={row.outputTokens} />
+              <td className="py-2.5 pl-3 text-right tabular-nums">{formatCostInr(row.costInr)}</td>
             </tr>
           ))}
+          {byModel.length > 1 && (
+            <>
+              <tr>
+                <th colSpan={4} scope="colgroup" className="pt-4 pb-1 text-left text-xs font-medium text-neutral-600">
+                  Models
+                </th>
+              </tr>
+              {byModel.map((row) => (
+                <tr key={row.model} className="border-t border-neutral-100">
+                  <th scope="row" className="py-2.5 pr-3 text-left font-mono text-xs font-normal">
+                    {row.model}
+                    <TokenLine input={row.inputTokens} output={row.outputTokens} />
+                  </th>
+                  <td className="py-2.5 text-right tabular-nums">{formatCount(row.runs)}</td>
+                  <TokenCell input={row.inputTokens} output={row.outputTokens} />
+                  <td className="py-2.5 pl-3 text-right tabular-nums">
+                    {row.costInr === null ? <Dash /> : formatCostInr(row.costInr)}
+                  </td>
+                </tr>
+              ))}
+            </>
+          )}
         </tbody>
+        <tfoot>
+          <tr className="border-t border-neutral-200 font-medium">
+            <th scope="row" className="py-2.5 pr-3 text-left font-medium">
+              All runs
+              {oneModel && (
+                <span className="mt-0.5 block font-mono text-xs font-normal text-neutral-600">{oneModel.model}</span>
+              )}
+              <TokenLine input={total.inputTokens} output={total.outputTokens} />
+            </th>
+            <td className="py-2.5 text-right tabular-nums">{formatCount(runs)}</td>
+            <TokenCell input={total.inputTokens} output={total.outputTokens} />
+            <td className="py-2.5 pl-3 text-right tabular-nums">{formatCostInr(total.costInr)}</td>
+          </tr>
+        </tfoot>
       </table>
     </div>
+  );
+}
+
+function TokenLine({ input, output }: { input: number; output: number }) {
+  return (
+    <span className="mt-0.5 block text-xs font-normal text-neutral-600 sm:hidden">
+      {formatCount(input)} in · {formatCount(output)} out
+    </span>
+  );
+}
+
+function TokenCell({ input, output }: { input: number; output: number }) {
+  return (
+    <td className="hidden py-2.5 text-right leading-5 tabular-nums sm:table-cell">
+      <span className="block whitespace-nowrap">
+        {formatCount(input)} <span className="text-neutral-600">in</span>
+      </span>
+      <span className="block whitespace-nowrap text-xs text-neutral-600">
+        {formatCount(output)} <span>out</span>
+      </span>
+    </td>
+  );
+}
+
+// The longest bar is the dearest task, in ink. A tie stays grey, and a zero
+// draws no stub, so the bar never invents a winner or a sliver of cost.
+function CostShare({ cost, max, lead }: { cost: number; max: number; lead: boolean }) {
+  if (max <= 0 || cost <= 0) return null;
+  return (
+    <span className="block h-1 w-28 shrink-0 rounded-full bg-neutral-200" aria-hidden>
+      <span
+        className={`block h-full rounded-full ${lead ? "bg-ink" : "bg-neutral-400"}`}
+        style={{ width: `${(cost / max) * 100}%` }}
+      />
+    </span>
   );
 }

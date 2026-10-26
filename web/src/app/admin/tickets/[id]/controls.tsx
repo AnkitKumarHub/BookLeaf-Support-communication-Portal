@@ -299,7 +299,7 @@ function Triage({ ticket, refresh }: Props) {
             ) : (
               <p className="text-sm text-neutral-500">The model returned no rationale for this ticket.</p>
             )}
-            <p className="mt-2 text-xs text-neutral-600">A suggestion — the fields above are yours to set.</p>
+            {/* <p className="mt-2 text-xs text-neutral-600">A suggestion — the fields above are yours to set.</p> */}
             <div className="mt-3">{retryButton}</div>
           </div>
         </div>

@@ -253,7 +253,7 @@ function NoteContext() {
   return (
     <p className="flex items-center gap-2 text-sm text-amber-900">
       <Lock className="size-3.5 shrink-0" aria-hidden />
-      Stays with the team. Authors never see notes.
+      Stays with the team
     </p>
   );
 }
@@ -310,7 +310,7 @@ function ReplyFooter({
       >
         {regenerateBusy ? "Requesting…" : hasDraft ? "Regenerate draft" : "Generate draft"}
       </button>
-      <span className="text-xs text-neutral-600">Nothing reaches the author until you post.</span>
+      {/* <span className="text-xs text-neutral-600">Nothing reaches the author until you post.</span> */}
     </div>
   );
 }
@@ -361,7 +361,7 @@ function DraftStatus({
   }
   // After a reply is sent the stored draft is cleared, so there is nothing to label.
   if (state === "suggested" && hasDraft) {
-    return <span className="text-sm text-neutral-600">AI draft. Review and edit before posting.</span>;
+    return <span className="text-sm text-neutral-600">AI draft</span>;
   }
   return <span className="text-sm text-neutral-600">Posted to the ticket, where the author can read it.</span>;
 }
