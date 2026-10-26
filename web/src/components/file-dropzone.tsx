@@ -57,12 +57,12 @@ export function FileDropzone({
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
         className={`flex w-full flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed px-4 py-5 text-center transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-          dragging ? "border-brand bg-brand-wash" : "border-neutral-300 hover:border-brand hover:bg-neutral-50"
+          dragging ? "border-ink bg-neutral-50" : "border-neutral-300 hover:border-ink hover:bg-neutral-50"
         }`}
       >
         <Upload className="size-5 text-neutral-500" aria-hidden />
         <span className="text-sm text-neutral-700">
-          {label} or <span className="font-medium text-brand-deep">browse</span>
+          {label} or <span className="font-medium text-neutral-800">browse</span>
         </span>
         {hint && <span className="text-xs text-neutral-500">{hint}</span>}
       </button>

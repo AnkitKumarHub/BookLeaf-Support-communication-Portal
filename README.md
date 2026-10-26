@@ -81,7 +81,7 @@ internal notes, AI categories, or draft text.
 
 | Screen | What the ops team gets |
 |---|---|
-| Ticket queue | Filters for status, category, priority, assignee and date, plus search. Urgent and overdue tickets stand out |
+| Ticket queue | Filters for status, category, priority, assignee and date, plus search. Shows whether an AI draft is ready, still being written, or failed. Urgent and overdue tickets stand out |
 | Ticket detail | The AI suggestion next to override controls, an editable AI draft, internal notes, assignment, status changes, and an audit trail |
 | Dashboard | Ticket volume for today, this week and all time; AI tokens and cost in rupees by model and task; AI confidence, override rate, and flagged drafts |
 
@@ -92,6 +92,12 @@ not sit below a Medium nobody has touched. Oldest-first means an author who has 
 is not pushed down by every new arrival.
 
 A ticket with no AI result shows **AI pending** or **AI unavailable**, never a made-up "Medium".
+
+**Light and dark.** Both portals follow the operating system's preference, and the toggle in the
+header overrides it and is remembered per browser. An inline script in the document head sets the
+theme before the first paint, so there is no light flash on load. Dark mode is a second set of
+values for the same CSS variables the whole app is built on, so no component carries a `dark:`
+class and the two themes cannot drift apart.
 
 ---
 

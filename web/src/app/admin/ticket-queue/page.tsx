@@ -1,12 +1,13 @@
 "use client";
 
+import { Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState, type ReactNode } from "react";
 import useSWR from "swr";
 import {
   buttonClass,
-  CategoryLabel,
+  DraftPill,
   EmptyState,
   ErrorState,
   inputClass,
@@ -20,6 +21,7 @@ import {
   CATEGORY_LABELS,
   formatAge,
   formatDateTime,
+  formatPercent,
   GENERAL_TICKET_LABEL,
   isOverdue,
   isUnresolved,
@@ -35,11 +37,13 @@ const PAGE_SIZE = 50;
 const FILTER_KEYS = ["status", "category", "priority", "assignee", "from", "to", "q"] as const;
 type FilterKey = (typeof FILTER_KEYS)[number];
 
-// Shared with the ticket detail page: a fixed-height label row above every
-// field, so a field with an action beside its label still lines up with the
-// fields next to it.
-const labelRowClass = "mb-1.5 flex min-h-7 items-center justify-between gap-2";
+// Shared with the dashboard and the ticket detail page, so the three admin
+// screens read as one surface.
+const panelClass = "rounded-2xl border border-neutral-200 bg-white p-5";
 const labelClass = "text-xs font-semibold uppercase tracking-wide text-neutral-600";
+// Ticket, assignee, AI draft. Declared once so the header and the rows below
+// it can never drift out of alignment.
+const ROW_COLUMNS = "lg:grid-cols-[minmax(0,1fr)_11rem_11rem]";
 
 export default function AdminQueuePage() {
   // useSearchParams needs a Suspense boundary in the App Router.
@@ -80,30 +84,40 @@ function Queue() {
   const total = data?.meta?.total ?? 0;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const rows = data?.data;
+  // Counted by the API over everything the filters match, not just this page.
+  const counts = data?.meta?.counts;
 
   return (
     <>
       <PageHeader
         title="Ticket queue"
-        description="All tickets in the queue"
+        description="Critical first, then high, then medium — open work above anything resolved."
         onRefresh={() => void mutate()}
         refreshing={isValidating}
       />
 
-      <div className="space-y-6">
-        <Filters
-          params={params}
-          onChange={setFilter}
-          onClear={() => router.replace(pathname, { scroll: false })}
-          hasFilters={hasFilters}
-        />
+      <div className="space-y-4">
+        {/* The filters take most of the width and the two tallies sit beside
+            them, stacked so the whole block is two rows deep either way. */}
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,3.4fr)_minmax(0,1fr)]">
+          <Filters
+            params={params}
+            onChange={setFilter}
+            onClear={() => router.replace(pathname, { scroll: false })}
+            hasFilters={hasFilters}
+          />
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+            <Glance label="Needs a reply" value={counts?.needsReply} />
+            <Glance label="Draft ready" value={counts?.draftReady} />
+          </div>
+        </div>
 
         {error && <ErrorState message="The queue could not be loaded." onRetry={() => void mutate()} />}
 
         {!data && !error && (
           <div className="space-y-2">
             {[0, 1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} className="h-14 w-full" />
+              <Skeleton key={i} className="h-24 w-full" />
             ))}
           </div>
         )}
@@ -114,7 +128,7 @@ function Queue() {
               <button
                 type="button"
                 onClick={() => router.replace(pathname)}
-                className="font-medium text-brand-deep hover:underline"
+                className="font-medium text-neutral-800 underline underline-offset-2 hover:text-ink"
               >
                 Clear filters
               </button>
@@ -129,36 +143,23 @@ function Queue() {
               {hasFilters ? " matching these filters" : ""}
             </h2>
 
-            <div className="overflow-x-auto rounded-2xl border border-neutral-200 bg-white">
-              <table className="w-full min-w-[56rem] text-left text-sm">
-                <thead className="border-b border-neutral-200 bg-neutral-50 text-xs font-semibold uppercase tracking-wide text-neutral-600">
-                  <tr>
-                    <th scope="col" className="py-3 pl-5 pr-4">
-                      Priority
-                    </th>
-                    <th scope="col" className="px-4 py-3">
-                      Ticket
-                    </th>
-                    <th scope="col" className="px-4 py-3">
-                      Category
-                    </th>
-                    <th scope="col" className="px-4 py-3">
-                      Status
-                    </th>
-                    <th scope="col" className="px-4 py-3">
-                      Assignee
-                    </th>
-                    <th scope="col" className="py-3 pl-4 pr-5">
-                      Age
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-100">
-                  {rows.map((row) => (
-                    <QueueRow key={row.id} row={row} />
-                  ))}
-                </tbody>
-              </table>
+            <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
+              {/* Column headers, so assignee and AI draft read as columns
+                  rather than as two things stacked on the right. Hidden on
+                  narrow screens, where each row stacks instead. */}
+              <div
+                aria-hidden
+                className={`hidden gap-5 border-b border-neutral-200 bg-neutral-50 px-5 py-3 ${labelClass} lg:grid ${ROW_COLUMNS}`}
+              >
+                <span>Ticket</span>
+                <span>Assignee</span>
+                <span>AI draft</span>
+              </div>
+              <ul>
+                {rows.map((row) => (
+                  <QueueRow key={row.id} row={row} />
+                ))}
+              </ul>
             </div>
 
             {pages > 1 && (
@@ -191,55 +192,131 @@ function Queue() {
   );
 }
 
+// A tally over the current filters. Undefined while the first page loads, so
+// the tile shows a dash rather than a zero it has not counted yet.
+function Glance({ label, value }: { label: string; value: number | undefined }) {
+  const id = label.toLowerCase().replace(/[^a-z]+/g, "-");
+  return (
+    <section
+      aria-labelledby={id}
+      className={`${panelClass} flex items-center justify-between gap-3 py-4`}
+    >
+      <h2 id={id} className={labelClass}>
+        {label}
+      </h2>
+      <span className="text-2xl font-semibold leading-none tabular-nums">
+        {value === undefined ? <span className="text-neutral-400">—</span> : value}
+      </span>
+    </section>
+  );
+}
+
+// Initials for the assignee bubble. Two letters at most, so every bubble is
+// the same size whatever the name.
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const letters = parts.slice(0, 2).map((part) => part[0] ?? "");
+  return letters.join("").toUpperCase() || "?";
+}
+
+function Assignee({ row }: { row: AdminQueueRow }) {
+  const name = row.assignedToMe ? "You" : row.assigneeName;
+  if (!name) {
+    return (
+      <span className="flex items-center gap-2 text-sm text-neutral-500">
+        <span
+          aria-hidden
+          className="flex size-7 shrink-0 items-center justify-center rounded-full border border-dashed border-neutral-300 text-[0.625rem] text-neutral-400"
+        >
+          —
+        </span>
+        Unassigned
+      </span>
+    );
+  }
+  return (
+    <span className="flex items-center gap-2 text-sm">
+      <span
+        aria-hidden
+        className="flex size-7 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-[0.625rem] font-semibold text-neutral-700"
+      >
+        {initials(row.assigneeName ?? name)}
+      </span>
+      <span className={row.assignedToMe ? "font-medium text-neutral-800" : undefined}>{name}</span>
+    </span>
+  );
+}
+
 function QueueRow({ row }: { row: AdminQueueRow }) {
   const stale = isOverdue(row.status, row.createdAt);
   const urgent = isUnresolved(row.status) && row.effectivePriority === "critical";
+  const confidence = row.aiConfidence === null ? null : formatPercent(Number(row.aiConfidence));
+
   return (
-    <tr
-      className={`relative cursor-pointer hover:bg-neutral-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-ink ${urgent ? "bg-red-50/40" : ""} ${row.status === "closed" ? "text-neutral-500" : ""}`}
+    <li
+      className={`relative border-t border-neutral-100 first:border-t-0 ${urgent ? "bg-red-50/40" : ""} ${
+        row.status === "closed" ? "text-neutral-500" : ""
+      }`}
     >
       {/* The rail marks an unresolved critical ticket; the badge beside it says
           the same thing in words, so the colour is never the only signal. */}
-      <td className={`py-3.5 pl-5 pr-4 ${urgent ? "border-l-4 border-red-500 pl-4" : ""}`}>
-        <PriorityBadge
-          priority={row.effectivePriority}
-          aiState={row.aiState}
-          overridden={row.priorityOverride !== null}
-        />
-      </td>
-      <td className="max-w-md px-4 py-3.5">
-        <Link
-          href={`/admin/tickets/${row.id}`}
-          className="block font-medium text-neutral-900 after:absolute after:inset-0 after:z-10 after:content-[''] hover:text-ink hover:underline focus-visible:underline focus-visible:outline-none"
-        >
-          {row.subject}
-        </Link>
-        <span className="mt-0.5 block truncate text-xs text-neutral-600">
-          {row.publicId} · {row.authorName} · {row.bookTitle ?? GENERAL_TICKET_LABEL}
-        </span>
-      </td>
-      <td className="px-4 py-3.5">
-        <CategoryLabel
-          category={row.effectiveCategory}
-          aiState={row.aiState}
-          overridden={row.categoryOverride !== null}
-        />
-      </td>
-      <td className="px-4 py-3.5">
-        <StatusPill status={row.status} />
-      </td>
-      <td className="px-4 py-3.5 text-sm">
-        {row.assignedToMe ? (
-          <span className="font-medium text-brand-deep">You</span>
-        ) : (
-          (row.assigneeName ?? <span className="text-neutral-500">Unassigned</span>)
-        )}
-      </td>
-      <td className="py-3.5 pl-4 pr-5 text-sm" title={formatDateTime(row.createdAt)}>
-        <span className={stale ? "font-semibold text-red-700" : "text-neutral-600"}>{formatAge(row.createdAt)}</span>
-      </td>
-    </tr>
+      <div
+        className={`grid gap-x-5 gap-y-4 p-5 ${ROW_COLUMNS} ${urgent ? "border-l-4 border-red-500 pl-4" : ""}`}
+      >
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <PriorityBadge
+              priority={row.effectivePriority}
+              aiState={row.aiState}
+              overridden={row.priorityOverride !== null}
+            />
+            <StatusPill status={row.status} />
+            <span className="text-xs text-neutral-500">
+              {row.effectiveCategory ? CATEGORY_LABELS[row.effectiveCategory] : "Not categorised"}
+              {row.categoryOverride !== null && <span title="Set by an admin"> · edited</span>}
+            </span>
+          </div>
+
+          <Link
+            href={`/admin/tickets/${row.id}`}
+            className="mt-2.5 block font-medium text-neutral-900 after:absolute after:inset-0 after:z-10 after:content-[''] hover:underline focus-visible:underline focus-visible:outline-none"
+          >
+            {row.subject}
+          </Link>
+
+          <p className="mt-1.5 truncate text-sm text-neutral-600">
+            {row.publicId} · {row.authorName} · {row.bookTitle ?? GENERAL_TICKET_LABEL} ·{" "}
+            <span className={stale ? "font-semibold text-red-700" : undefined} title={formatDateTime(row.createdAt)}>
+              {formatAge(row.createdAt)}
+            </span>
+          </p>
+        </div>
+
+        <div className="lg:self-center">
+          <ColumnLabel>Assignee</ColumnLabel>
+          <Assignee row={row} />
+        </div>
+
+        <div className="lg:self-center">
+          <ColumnLabel>AI draft</ColumnLabel>
+          <span className="flex flex-wrap items-center gap-2">
+            <DraftPill draftState={row.draftState} flagged={row.draftFlagged} />
+            {confidence && (
+              <span className="text-xs tabular-nums text-neutral-500" title="The model's own confidence">
+                {confidence}
+              </span>
+            )}
+          </span>
+        </div>
+      </div>
+    </li>
   );
+}
+
+// The header row only exists on wide screens, so each cell names itself when
+// the row stacks.
+function ColumnLabel({ children }: { children: ReactNode }) {
+  return <span className={`${labelClass} mb-1.5 block lg:hidden`}>{children}</span>;
 }
 
 function Filters({
@@ -263,13 +340,11 @@ function Filters({
     return () => clearTimeout(timer);
   }, [search, urlSearch, onChange]);
 
-  const select = (key: FilterKey, label: string, options: { value: string; label: string }[]) => (
-    <div>
-      <div className={labelRowClass}>
-        <label htmlFor={`filter-${key}`} className={labelClass}>
-          {label}
-        </label>
-      </div>
+  const select = (key: FilterKey, label: string, span: string, options: { value: string; label: string }[]) => (
+    <div className={span}>
+      <label htmlFor={`filter-${key}`} className={`${labelClass} mb-1.5 block`}>
+        {label}
+      </label>
       <select
         id={`filter-${key}`}
         value={params.get(key) ?? ""}
@@ -286,13 +361,11 @@ function Filters({
     </div>
   );
 
-  const date = (key: "from" | "to", label: string) => (
-    <div>
-      <div className={labelRowClass}>
-        <label htmlFor={`filter-${key}`} className={labelClass}>
-          {label}
-        </label>
-      </div>
+  const date = (key: "from" | "to", label: string, span: string) => (
+    <div className={span}>
+      <label htmlFor={`filter-${key}`} className={`${labelClass} mb-1.5 block`}>
+        {label}
+      </label>
       <input
         id={`filter-${key}`}
         type="date"
@@ -304,10 +377,10 @@ function Filters({
   );
 
   return (
-    <section aria-labelledby="filters-heading" className="rounded-2xl border border-neutral-200 bg-white p-5">
+    <section aria-labelledby="filters-heading" className={panelClass}>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h2 id="filters-heading" className={labelClass}>
-          Filters
+          Search and filters
         </h2>
         {hasFilters && (
           <button
@@ -316,38 +389,45 @@ function Filters({
               setSearch("");
               onClear();
             }}
-            className="rounded px-1 py-1 text-xs font-medium text-brand-deep underline underline-offset-2 hover:text-ink"
+            className="rounded px-1 py-1 text-xs font-medium text-neutral-800 underline underline-offset-2 hover:text-ink"
           >
             Clear all filters
           </button>
         )}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="xl:col-span-2">
-          <div className={labelRowClass}>
-            <label htmlFor="filter-q" className={labelClass}>
-              Search
-            </label>
+      {/* Two deliberate rows on a twelve-column grid: what you are looking for
+          and when it arrived on top, which bucket it belongs to underneath.
+          Fixed spans rather than wrapping, so the rows never go ragged. */}
+      <div className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-12">
+        <div className="sm:col-span-6">
+          <label htmlFor="filter-q" className={`${labelClass} mb-1.5 block`}>
+            Search
+          </label>
+          <div className="relative">
+            <Search
+              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-neutral-500"
+              aria-hidden
+            />
+            <input
+              id="filter-q"
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Ticket id, subject, author name or email"
+              className={`${inputClass} pl-9`}
+            />
           </div>
-          <input
-            id="filter-q"
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Ticket id, subject, author name or email"
-            className={inputClass}
-          />
         </div>
-        {select("status", "Status", TICKET_STATUSES.map((value) => ({ value, label: TICKET_STATUS_LABELS[value] })))}
-        {select("priority", "Priority", TICKET_PRIORITIES.map((value) => ({ value, label: PRIORITY_LABELS[value] })))}
-        {select("category", "Category", TICKET_CATEGORIES.map((value) => ({ value, label: CATEGORY_LABELS[value] })))}
-        {select("assignee", "Assignee", [
+        {date("from", "Created from", "sm:col-span-3")}
+        {date("to", "Created to", "sm:col-span-3")}
+        {select("status", "Status", "sm:col-span-3", TICKET_STATUSES.map((value) => ({ value, label: TICKET_STATUS_LABELS[value] })))}
+        {select("priority", "Priority", "sm:col-span-3", TICKET_PRIORITIES.map((value) => ({ value, label: PRIORITY_LABELS[value] })))}
+        {select("category", "Category", "sm:col-span-3", TICKET_CATEGORIES.map((value) => ({ value, label: CATEGORY_LABELS[value] })))}
+        {select("assignee", "Assignee", "sm:col-span-3", [
           { value: "me", label: "Assigned to me" },
           { value: "unassigned", label: "Unassigned" },
         ])}
-        {date("from", "Created from")}
-        {date("to", "Created to")}
       </div>
     </section>
   );

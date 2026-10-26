@@ -26,7 +26,7 @@ function AuthorCard({ ticket }: { ticket: AdminTicketDetail }) {
       <CardTitle>Author</CardTitle>
       <p className="text-[0.9375rem] font-semibold">{ticket.authorName}</p>
       <p className="mt-0.5 break-words text-sm">
-        <a href={`mailto:${ticket.authorEmail}`} className="text-brand-deep hover:underline">
+        <a href={`mailto:${ticket.authorEmail}`} className="text-neutral-800 underline underline-offset-2 hover:text-ink">
           {ticket.authorEmail}
         </a>
       </p>

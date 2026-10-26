@@ -4,6 +4,9 @@ export type PaginationMeta = {
   page: number;
   limit: number;
   total: number;
+  // Extra tallies a list endpoint reports beside the page, counted over
+  // everything the filters match rather than just the rows returned.
+  counts?: Record<string, number>;
 };
 
 export function sendData<T>(

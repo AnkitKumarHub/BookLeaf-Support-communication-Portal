@@ -3,6 +3,7 @@ import { alias } from "drizzle-orm/pg-core";
 import { db } from "../../db/index.js";
 import {
   admins,
+  aiRuns,
   authors,
   books,
   ticketAttachments,
@@ -18,7 +19,6 @@ import { likePattern } from "../shared/like.js";
 import type { TicketStatus } from "../tickets/tickets.service.js";
 import type { TicketCategory, TicketPriority } from "./admin.constants.js";
 import { publishTicketChanged } from "../realtime/ticket-bus.js";
-import { latestDraftRun } from "./admin.service.js";
 
 const assigneeUser = alias(users, "assignee_user");
 const noteUser = alias(users, "note_user");
@@ -39,7 +39,10 @@ export type AdminQueueJson = {
   priorityOverride: TicketPriority | null;
   effectivePriority: TicketPriority | null;
   aiState: "pending" | "processing" | "completed" | "failed";
+  aiConfidence: string | null;
   draftState: "none" | "pending" | "suggested" | "failed";
+  // An admin marked the current AI draft as not good enough.
+  draftFlagged: boolean;
   assigneeName: string | null;
   assignedToMe: boolean;
   createdAt: string;
@@ -65,12 +68,9 @@ export type AdminDetailJson = AdminQueueJson & {
   phone: string | null;
   city: string | null;
   book: BookJson | null;
-  aiConfidence: string | null;
   aiRationale: string | null;
   draftBody: string | null;
   draftEditedAt: string | null;
-  // True when an admin flagged the current AI draft as not good enough.
-  draftFlagged: boolean;
   replies: { id: string; body: string; createdAt: string }[];
   notes: AdminNoteJson[];
   attachments: {
@@ -94,10 +94,16 @@ export async function listAdminTickets(input: {
   to?: Date | undefined;
   assignee?: "me" | "unassigned" | undefined;
   q?: string | undefined;
-}): Promise<{ rows: AdminQueueJson[]; total: number }> {
+}): Promise<{ rows: AdminQueueJson[]; total: number; needsReply: number; draftReady: number }> {
   const where = queueFilters(input);
+  // One pass for the page total and the two tallies the queue header shows,
+  // so the counts always describe the same filters as the rows below them.
   const [counted] = await db
-    .select({ total: count() })
+    .select({
+      total: count(),
+      needsReply: sql<number>`count(*) filter (where ${tickets.status} = 'open')`,
+      draftReady: sql<number>`count(*) filter (where ${tickets.draftState} = 'suggested' and not ${draftFlagged()})`,
+    })
     .from(tickets)
     .innerJoin(authors, eq(tickets.authorId, authors.id))
     .leftJoin(books, eq(tickets.bookId, books.id))
@@ -118,6 +124,8 @@ export async function listAdminTickets(input: {
 
   return {
     total: asCount(counted?.total),
+    needsReply: asCount(counted?.needsReply),
+    draftReady: asCount(counted?.draftReady),
     rows: rows.map((row) => toQueueJson(row, input.userId)),
   };
 }
@@ -197,7 +205,7 @@ export async function getAdminTicket(
     }
   }
 
-  const [replies, notes, attachments, events, draftRun] = await Promise.all([
+  const [replies, notes, attachments, events] = await Promise.all([
     db
       .select({
         id: ticketMessages.id,
@@ -250,7 +258,6 @@ export async function getAdminTicket(
       .from(ticketEvents)
       .where(eq(ticketEvents.ticketId, ticket.id))
       .orderBy(asc(ticketEvents.createdAt)),
-    latestDraftRun(ticket.id),
   ]);
 
   return {
@@ -284,7 +291,6 @@ export async function getAdminTicket(
     draftEditedAt: ticket.draftEditedAt
       ? ticket.draftEditedAt.toISOString()
       : null,
-    draftFlagged: Boolean(ticket.draftBody && draftRun?.flaggedAt),
     replies: replies.map((reply) => ({
       id: reply.id,
       body: reply.body,
@@ -306,6 +312,25 @@ export async function getAdminTicket(
   };
 }
 
+// True when an admin marked the ticket's current AI draft as not good enough.
+// Mirrors latestDraftRun: the newest completed draft run is the current one,
+// and a draft that has since been cleared or regenerated is not flagged.
+function draftFlagged() {
+  return sql<boolean>`(
+    ${tickets.draftBody} is not null
+    and coalesce((
+      select ${aiRuns.flaggedAt} is not null
+      from ${aiRuns}
+      where ${aiRuns.ticketId} = ${tickets.id}
+        and ${aiRuns.taskType} = 'draft'
+        and ${aiRuns.state} = 'completed'
+        and ${aiRuns.errorCode} is null
+      order by ${aiRuns.completedAt} desc
+      limit 1
+    ), false)
+  )`;
+}
+
 function queueColumns() {
   return {
     id: tickets.id,
@@ -322,7 +347,9 @@ function queueColumns() {
     priorityOverride: tickets.priorityOverride,
     effectivePriority: sql<TicketPriority | null>`coalesce(${tickets.priorityOverride}, ${tickets.aiPriority})`,
     aiState: tickets.aiState,
+    aiConfidence: tickets.aiConfidence,
     draftState: tickets.draftState,
+    draftFlagged: draftFlagged(),
     assigneeName: admins.name,
     assignedAdminId: tickets.assignedAdminId,
     createdAt: tickets.createdAt,
@@ -345,7 +372,9 @@ type QueueRow = {
   priorityOverride: TicketPriority | null;
   effectivePriority: TicketPriority | null;
   aiState: AdminQueueJson["aiState"];
+  aiConfidence: string | null;
   draftState: AdminQueueJson["draftState"];
+  draftFlagged: boolean;
   assigneeName: string | null;
   assignedAdminId: string | null;
   createdAt: Date;
@@ -368,7 +397,9 @@ function toQueueJson(row: QueueRow, userId: string): AdminQueueJson {
     priorityOverride: row.priorityOverride,
     effectivePriority: row.effectivePriority,
     aiState: row.aiState,
+    aiConfidence: row.aiConfidence,
     draftState: row.draftState,
+    draftFlagged: row.draftFlagged,
     assigneeName: row.assigneeName,
     assignedToMe: row.assignedAdminId === userId,
     createdAt: row.createdAt.toISOString(),

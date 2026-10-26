@@ -16,7 +16,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         soft: "rounded-md bg-ink font-semibold text-white hover:bg-neutral-800",
-        solid: "btn-asym bg-neutral-900 text-white hover:bg-black",
+        solid: "btn-asym bg-neutral-900 text-white hover:bg-neutral-950",
         outline: "btn-asym-mirror border border-neutral-200 bg-transparent text-ink hover:bg-neutral-100",
         ghost: "rounded-md text-ink hover:bg-neutral-100",
         danger: "rounded-md bg-red-600 font-semibold text-white hover:bg-red-700",

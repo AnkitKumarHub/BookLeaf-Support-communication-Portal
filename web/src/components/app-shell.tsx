@@ -4,6 +4,7 @@ import { LogOut } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { RequireRole, useAuthActions, useMe, type Role } from "@/lib/auth";
 import { useTicketStream } from "@/lib/stream";
@@ -67,7 +68,7 @@ function Shell({ nav, role, children }: { nav: NavItem[]; role: Role; children: 
                 aria-current={active === item.href ? "page" : undefined}
                 className={`rounded-md px-3 py-1.5 text-sm ${
                   active === item.href
-                    ? "bg-brand-wash font-medium text-ink"
+                    ? "bg-neutral-100 font-medium text-ink"
                     : "text-neutral-600 hover:bg-neutral-100"
                 }`}
               >
@@ -77,6 +78,7 @@ function Shell({ nav, role, children }: { nav: NavItem[]; role: Role; children: 
           </nav>
           <div className="flex items-center gap-3 text-sm">
             <span className="text-neutral-600">{me?.name}</span>
+            <ThemeToggle />
             <Button
               type="button"
               variant="outline"

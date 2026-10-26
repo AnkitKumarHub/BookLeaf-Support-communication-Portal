@@ -27,7 +27,7 @@ export default function SignupPage() {
       <main className="flex flex-1 items-center justify-center p-8 text-sm text-neutral-600">
         <p>
           Sign-up is not available.{" "}
-          <Link href="/login" className="font-medium text-brand-deep hover:underline">
+          <Link href="/login" className="font-medium text-neutral-800 underline underline-offset-2 hover:text-ink">
             Go to sign in
           </Link>
         </p>
@@ -72,12 +72,12 @@ export default function SignupPage() {
     <main className="flex flex-1 items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <p className="text-xs font-semibold uppercase tracking-widest text-brand-deep">BookLeaf Publishing</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-neutral-500">BookLeaf Publishing</p>
           <h1 className="mt-2 text-2xl font-semibold">Create an author account</h1>
           <p className="mt-1 text-sm text-neutral-500">For trying the portal. You can add your books after signing up.</p>
         </div>
 
-        <form onSubmit={onSubmit} noValidate className="space-y-4 rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+        <form onSubmit={onSubmit} noValidate className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-6">
           {error && !Object.keys(error.fields).length && (
             <div role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
               {error.message}
@@ -95,7 +95,7 @@ export default function SignupPage() {
 
         <p className="mt-4 text-center text-sm text-neutral-600">
           Already have an account?{" "}
-          <Link href="/login" className="font-medium text-brand-deep hover:underline">
+          <Link href="/login" className="font-medium text-neutral-800 underline underline-offset-2 hover:text-ink">
             Sign in
           </Link>
         </p>

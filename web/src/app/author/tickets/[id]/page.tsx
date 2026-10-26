@@ -1,11 +1,12 @@
 "use client";
 
+import { Check } from "lucide-react";
 import Link from "next/link";
 import { use, useState } from "react";
 import useSWR from "swr";
 import { Badge, EmptyState, ErrorState, PageHeader, Skeleton, StatusPill } from "@/components/ui";
 import { toApiError, type Envelope } from "@/lib/api";
-import { formatAge, formatDateTime, GENERAL_TICKET_LABEL, isInProduction } from "@/lib/format";
+import { formatAge, formatDateTime, GENERAL_TICKET_LABEL, isInProduction, TICKET_STATUS_LABELS } from "@/lib/format";
 import { authorTicketKey } from "@/lib/keys";
 import type { AuthorTicketDetail } from "@/lib/types";
 import { FileDropzone } from "@/components/file-dropzone";
@@ -23,7 +24,7 @@ export default function AuthorTicketPage({ params }: PageProps<"/author/tickets/
   if (error && toApiError(error).status === 404) {
     return (
       <EmptyState title="Ticket not found">
-        <Link href="/author/tickets" className="font-medium text-brand-deep hover:underline">
+        <Link href="/author/tickets" className="font-medium text-neutral-800 underline underline-offset-2 hover:text-ink">
           Back to my tickets
         </Link>
       </EmptyState>
@@ -55,14 +56,14 @@ export default function AuthorTicketPage({ params }: PageProps<"/author/tickets/
       {error && <ErrorState message="This ticket could not be loaded." onRetry={() => void mutate()} />}
 
       {!ticket && !error && (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
           <Skeleton className="h-64 w-full" />
           <Skeleton className="h-48 w-full" />
         </div>
       )}
 
       {ticket && (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
           {/* Both columns open with a heading of the same height, so the first
               card on each side starts on the same line. */}
           <div className="min-w-0">
@@ -73,28 +74,104 @@ export default function AuthorTicketPage({ params }: PageProps<"/author/tickets/
           <div>
             <h2 className={`mb-3 ${labelClass}`}>About this ticket</h2>
             <div className="space-y-4">
-              <div className={panelClass}>
-                {ticket.book ? (
-                  <>
-                    <p className="text-[0.9375rem] font-semibold">{ticket.book.title}</p>
-                    <div className="mt-2">
-                      <Badge tone={isInProduction(ticket.book.status) ? "amber" : "green"}>{ticket.book.status}</Badge>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-[0.9375rem] font-semibold">{GENERAL_TICKET_LABEL}</p>
-                )}
-                <p className="mt-4 border-t border-neutral-100 pt-3 text-xs text-neutral-600">
-                  Last updated {formatAge(ticket.updatedAt)}
-                </p>
-              </div>
-
+              <Progress ticket={ticket} />
+              <Details ticket={ticket} />
               <Attachments ticket={ticket} refresh={() => mutate()} />
             </div>
           </div>
         </div>
       )}
     </>
+  );
+}
+
+// Where the ticket stands, in the three steps an author actually cares about.
+// Read from the ticket itself rather than stored anywhere: a reply exists or it
+// does not, and the status says whether the matter is finished.
+function Progress({ ticket }: { ticket: AuthorTicketDetail }) {
+  const answered = ticket.replies.length > 0 || ticket.status !== "open";
+  const finished = ticket.status === "resolved" || ticket.status === "closed";
+  const steps = [
+    { label: "You opened it", done: true },
+    { label: answered ? "BookLeaf replied" : "With the BookLeaf team", done: answered },
+    { label: finished ? TICKET_STATUS_LABELS[ticket.status] : "Resolved", done: finished },
+  ];
+  const current = finished ? 2 : answered ? 1 : 1;
+
+  return (
+    <section aria-labelledby="progress-heading" className={panelClass}>
+      <h3 id="progress-heading" className={labelClass}>
+        Progress
+      </h3>
+      <ol className="mt-3 space-y-3">
+        {steps.map((step, index) => (
+          <li key={step.label} className="flex gap-3">
+            <span className="flex flex-col items-center" aria-hidden>
+              <span
+                className={`mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border ${
+                  step.done ? "border-transparent" : "border-neutral-300"
+                }`}
+                style={step.done ? { backgroundColor: "var(--color-accent-done)" } : undefined}
+              >
+                {step.done && <Check className="size-2.5 text-white" strokeWidth={3.5} />}
+              </span>
+              {index < steps.length - 1 && <span className="mt-1 w-px flex-1 bg-neutral-200" />}
+            </span>
+            <span
+              className={`pb-1 text-sm ${
+                step.done ? "text-neutral-900" : index === current ? "font-medium text-neutral-900" : "text-neutral-500"
+              }`}
+            >
+              {step.label}
+            </span>
+          </li>
+        ))}
+      </ol>
+      {!answered && (
+        <p className="mt-3 border-t border-neutral-100 pt-3 text-xs leading-relaxed text-neutral-600">
+          This page updates on its own when a reply arrives. You do not need to refresh it.
+        </p>
+      )}
+    </section>
+  );
+}
+
+// The facts of the ticket as a definition list, rather than a title and a date
+// floating in a mostly empty card.
+function Details({ ticket }: { ticket: AuthorTicketDetail }) {
+  return (
+    <section aria-labelledby="details-heading" className={panelClass}>
+      <h3 id="details-heading" className={labelClass}>
+        Details
+      </h3>
+      <dl className="mt-3 space-y-3 text-sm">
+        <div>
+          <dt className="text-xs text-neutral-600">Ticket</dt>
+          <dd className="mt-0.5 font-mono text-xs">{ticket.publicId}</dd>
+        </div>
+        <div>
+          <dt className="text-xs text-neutral-600">Book</dt>
+          <dd className="mt-0.5 font-medium">{ticket.book ? ticket.book.title : GENERAL_TICKET_LABEL}</dd>
+          {ticket.book && (
+            <dd className="mt-1.5">
+              <Badge tone={isInProduction(ticket.book.status) ? "amber" : "green"}>{ticket.book.status}</Badge>
+            </dd>
+          )}
+        </div>
+        <div className="border-t border-neutral-100 pt-3">
+          <dt className="text-xs text-neutral-600">Opened</dt>
+          <dd className="mt-0.5" title={formatDateTime(ticket.createdAt)}>
+            {formatAge(ticket.createdAt)}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs text-neutral-600">Last updated</dt>
+          <dd className="mt-0.5" title={formatDateTime(ticket.updatedAt)}>
+            {formatAge(ticket.updatedAt)}
+          </dd>
+        </div>
+      </dl>
+    </section>
   );
 }
 
@@ -118,11 +195,11 @@ function Thread({ ticket }: { ticket: AuthorTicketDetail }) {
       </li>
 
       {ticket.replies.map((reply) => (
-        <li key={reply.id} className="rounded-2xl border border-brand-line bg-brand-wash p-5">
+        <li key={reply.id} className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5">
           <div className="mb-2.5 flex flex-wrap items-center gap-2.5">
             <span
               aria-hidden
-              className="flex size-8 items-center justify-center rounded-full bg-brand text-xs font-semibold text-ink"
+              className="flex size-8 items-center justify-center rounded-full bg-neutral-100 text-xs font-semibold text-neutral-700"
             >
               BL
             </span>
@@ -182,7 +259,7 @@ function Attachments({ ticket, refresh }: { ticket: AuthorTicketDetail; refresh:
         <ul className="mt-3 space-y-2 text-sm">
           {ticket.attachments.map((file) => (
             <li key={file.id} className="flex justify-between gap-2">
-              <a href={file.url} target="_blank" rel="noreferrer" className="truncate text-brand-deep hover:underline">
+              <a href={file.url} target="_blank" rel="noreferrer" className="truncate text-neutral-800 underline underline-offset-2 hover:text-ink">
                 {file.name}
               </a>
               <span className="shrink-0 text-xs text-neutral-600">{formatBytes(file.sizeBytes)}</span>

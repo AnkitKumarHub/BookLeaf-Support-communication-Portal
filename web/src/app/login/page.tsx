@@ -56,7 +56,7 @@ export default function LoginPage() {
     <main className="flex flex-1 items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <p className="text-xs font-semibold uppercase tracking-widest text-brand-deep">
+          <p className="text-xs font-semibold uppercase tracking-widest text-neutral-500">
             BookLeaf Publishing
           </p>
           <h1 className="mt-2 text-2xl font-semibold">Sign in to Support</h1>
@@ -66,7 +66,7 @@ export default function LoginPage() {
         <form
           onSubmit={onSubmit}
           noValidate
-          className="space-y-4 rounded-xl border border-neutral-200 bg-white p-6 shadow-sm"
+          className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-6"
         >
           {error && (
             <div role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -105,7 +105,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={submitting || !email || !password}
-            className="w-full rounded-md bg-brand px-4 py-2 text-sm font-medium text-ink hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-md bg-brand px-4 py-2 text-sm font-medium text-on-brand hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-50"
           >
             {submitting ? "Signing in…" : "Sign in"}
           </button>
@@ -114,7 +114,7 @@ export default function LoginPage() {
         {DEMO_SELF_SERVICE && (
           <p className="mt-4 text-center text-sm text-neutral-600">
             New author?{" "}
-            <Link href="/signup" className="font-medium text-brand-deep hover:underline">
+            <Link href="/signup" className="font-medium text-neutral-800 underline underline-offset-2 hover:text-ink">
               Create an account
             </Link>
           </p>
@@ -130,7 +130,7 @@ export default function LoginPage() {
                   type="button"
                   disabled={submitting}
                   onClick={() => void onDemo(demo.account)}
-                  className="block w-full rounded-md border border-neutral-200 px-3 py-2 text-left hover:border-brand hover:bg-brand-wash disabled:opacity-50"
+                  className="block w-full rounded-lg border border-neutral-200 px-3 py-2 text-left transition-colors duration-150 hover:border-ink hover:bg-neutral-50 disabled:opacity-50"
                 >
                   <span className="block text-sm font-medium">{demo.label}</span>
                   <span className="block text-xs text-neutral-500">{demo.hint}</span>

@@ -1,11 +1,11 @@
 "use client";
 
-import { Check, Circle, CircleDot, CircleOff, RefreshCw } from "lucide-react";
+import { Check, Circle, CircleDot, CircleOff, Ellipsis, Flag, Minus, RefreshCw, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Chip } from "@/components/ui/chip";
 import { CATEGORY_LABELS, EM_DASH, formatMoney, PRIORITY_LABELS, TICKET_STATUS_LABELS } from "@/lib/format";
-import type { AiState, TicketCategory, TicketPriority, TicketStatus } from "@/lib/types";
+import type { AiState, DraftState, TicketCategory, TicketPriority, TicketStatus } from "@/lib/types";
 
 // Null renders as an em dash; zero and empty strings are real values.
 export function Dash() {
@@ -45,10 +45,37 @@ export function StatusPill({ status }: { status: TicketStatus }) {
   );
 }
 
+// Each draft state gets its own glyph as well as its own tone, so they are
+// told apart at a glance rather than by reading the label. The flag belongs to
+// a person rejecting a draft; a run that failed on its own gets the warning
+// triangle, because those are different things.
+type DraftChip = { tone: "default" | "medium" | "success" | "danger"; icon: typeof Check; label: string };
+
+const DRAFT_CHIP: Record<DraftState, DraftChip> = {
+  none: { tone: "default", icon: Minus, label: "No draft" },
+  pending: { tone: "medium", icon: Ellipsis, label: "Writing" },
+  suggested: { tone: "success", icon: Check, label: "Draft ready" },
+  failed: { tone: "danger", icon: TriangleAlert, label: "Draft failed" },
+};
+
+const FLAGGED_CHIP: DraftChip = { tone: "danger", icon: Flag, label: "Flagged" };
+
+// A flagged draft still exists, so draftState says "suggested" — but it is not
+// one anybody should reach for, and the flag wins over the tick.
+export function DraftPill({ draftState, flagged = false }: { draftState: DraftState; flagged?: boolean }) {
+  const { tone, icon: Icon, label } = flagged ? FLAGGED_CHIP : DRAFT_CHIP[draftState];
+  return (
+    <Chip tone={tone}>
+      <Icon className="size-3" aria-hidden />
+      {label}
+    </Chip>
+  );
+}
+
 const PRIORITY_STYLES: Record<TicketPriority, string> = {
   critical: "bg-red-600 text-white",
   high: "bg-orange-100 text-orange-900 ring-1 ring-inset ring-orange-300",
-  medium: "bg-sky-50 text-sky-800 ring-1 ring-inset ring-sky-200",
+  medium: "bg-neutral-100 text-neutral-700 ring-1 ring-inset ring-neutral-200",
   low: "bg-neutral-100 text-neutral-600",
 };
 
@@ -103,10 +130,12 @@ export function CategoryLabel({
 }
 
 export function Badge({ children, tone = "neutral" }: { children: ReactNode; tone?: "neutral" | "green" | "amber" }) {
+  // "green" means done, so it takes the family's green end rather than the
+  // brand rose: a published book and a resolved ticket read the same way.
   const tones = {
     neutral: "bg-neutral-100 text-neutral-700",
-    green: "bg-brand-wash text-brand-deep",
-    amber: "bg-amber-50 text-amber-800",
+    green: "bg-emerald-50 text-emerald-800 ring-1 ring-inset ring-emerald-700/20",
+    amber: "bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-700/20",
   };
   return (
     <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${tones[tone]}`}>
@@ -157,7 +186,7 @@ export function ButtonLink({ href, children }: { href: string; children: ReactNo
   return (
     <Link
       href={href}
-      className="rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-ink hover:bg-brand-strong"
+      className="rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-on-brand hover:bg-brand-strong"
     >
       {children}
     </Link>
@@ -165,12 +194,12 @@ export function ButtonLink({ href, children }: { href: string; children: ReactNo
 }
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`rounded-xl border border-neutral-200 bg-white p-5 ${className}`}>{children}</div>;
+  return <div className={`rounded-2xl border border-neutral-200 bg-white p-5 ${className}`}>{children}</div>;
 }
 
 export function EmptyState({ title, children }: { title: string; children?: ReactNode }) {
   return (
-    <div className="rounded-xl border border-dashed border-neutral-300 bg-white px-6 py-12 text-center">
+    <div className="rounded-2xl border border-dashed border-neutral-300 bg-white px-6 py-12 text-center">
       <p className="font-medium">{title}</p>
       {children && <div className="mt-2 text-sm text-neutral-500">{children}</div>}
     </div>
@@ -179,7 +208,7 @@ export function EmptyState({ title, children }: { title: string; children?: Reac
 
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-800">
+    <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-800">
       {message}
       {onRetry && (
         <button type="button" onClick={onRetry} className="ml-3 font-medium underline">
@@ -222,15 +251,59 @@ export const buttonClass =
   "rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50";
 
 export const primaryButtonClass =
-  "rounded-md bg-brand px-4 py-2 text-sm font-medium text-ink hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-50";
+  "rounded-md bg-brand px-4 py-2 text-sm font-medium text-on-brand hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-50";
 
 export const inputClass =
   "block w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-ink focus:ring-2 focus:ring-brand/30 aria-[invalid=true]:border-red-400";
 
-// Segmented filter buttons (author books and tickets). Same height as the
-// form controls, so a row of them lines up with anything beside it.
-export function filterTabClass(active: boolean): string {
-  return `min-h-11 rounded-lg px-3.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${
-    active ? "bg-brand font-medium text-ink" : "text-neutral-700 hover:bg-neutral-100"
-  }`;
+// One segmented control rather than a row of loose buttons: the track groups
+// the options so they read as one choice. A count appears only when there is
+// something to count, so a fresh account is not a row of zeroes.
+export function FilterTabs<T extends string>({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: T;
+  onChange: (value: T) => void;
+  options: { value: T; label: string; count?: number }[];
+}) {
+  return (
+    <div
+      role="tablist"
+      aria-label={label}
+      className="inline-flex flex-wrap gap-1 rounded-xl border border-neutral-200 bg-white p-1"
+    >
+      {options.map((option) => {
+        const active = option.value === value;
+        // Still clickable when empty: picking it is how you confirm it is.
+        const empty = option.count === 0;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(option.value)}
+            className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 text-sm transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ink ${
+              active
+                ? "bg-neutral-100 font-medium text-ink ring-1 ring-neutral-200"
+                : empty
+                  ? "text-neutral-500 hover:bg-neutral-100"
+                  : "text-neutral-700 hover:bg-neutral-100 hover:text-ink"
+            }`}
+          >
+            {option.label}
+            {option.count !== undefined && option.count > 0 && (
+              <span className="text-xs tabular-nums text-neutral-500">
+                {option.count}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
 }

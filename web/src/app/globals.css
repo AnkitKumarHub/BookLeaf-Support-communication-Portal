@@ -4,9 +4,16 @@
    below (bg-brand, text-brand-deep, text-ink …) so changing the brand colour
    is a change to this file only. */
 :root {
+  color-scheme: light;
   --background: #faf8f7;
   --foreground: #111111;
 }
+
+/* dark:* follows the attribute the inline script sets, not the OS directly, so
+   an admin's explicit choice wins. Almost nothing needs it — the palette below
+   does the work — but it is here for the few places that must change shape
+   rather than colour. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 @theme inline {
   --color-background: var(--background);
@@ -28,6 +35,17 @@
   --color-brand-wash: #fbeeee;
   --color-brand-line: #f1d5d4;
 
+  /* Text on a brand fill. The one colour that does not flip in dark mode,
+     because the fill underneath it does not either. */
+  --color-on-brand: #111111;
+
+  /* One hue per job, all a short arc around the brand rose. The rose itself
+     stays for the brand mark, so a dashboard of charts does not read as one
+     wash of rose gold. These are fills on data marks, never text. */
+  --color-accent-volume: #b06a45;
+  --color-accent-quality: #9a7435;
+  --color-accent-done: #4f7d5e;
+
   /* Neutrals shifted warm so grey text and borders sit with the rose instead
      of fighting it. Same names as Tailwind's neutral scale, so every existing
      neutral-* class picks this up. */
@@ -42,6 +60,85 @@
   --color-neutral-800: #2b2625;
   --color-neutral-900: #111111;
   --color-neutral-950: #0a0909;
+}
+
+/* Dark mode. Every colour above is a CSS variable that Tailwind's utilities
+   read at runtime, so redefining the variables here flips the whole app: no
+   component carries a dark: class. The ramp keeps its names and swaps its
+   roles — neutral-50 is the lightest surface in light mode and the lift above
+   a card in dark mode — so bg-white, border-neutral-200 and text-neutral-600
+   stay the right thing to write in a component.
+
+   Set by the inline script in layout.tsx before the first paint, from the
+   stored choice or the OS preference. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #121010;
+  --foreground: #f5f1ef;
+
+  --color-white: #1b1817;
+  --color-ink: #f5f1ef;
+  --color-ring: #d88180;
+
+  /* The rose reaches 5.8:1 on a card here, so unlike on white it can carry
+     text: brand-deep becomes a light tint rather than a darker one. */
+  --color-brand: #d88180;
+  --color-brand-strong: #eca9a8;
+  --color-brand-deep: #e59695;
+  --color-brand-wash: #2a2120;
+  --color-brand-line: #3d2b2b;
+
+  --color-accent-volume: #cf8f6a;
+  --color-accent-quality: #d5a862;
+  --color-accent-done: #9fae8a;
+
+  --color-neutral-50: #232020;
+  --color-neutral-100: #272322;
+  --color-neutral-200: #2e2a29;
+  --color-neutral-300: #3a3433;
+  /* Text greys carry only a trace of the warmth the surfaces have. At the
+     earlier spread every label on a dark page picked up a pink cast, which
+     read as more brand colour than the page actually had. */
+  --color-neutral-400: #8a8784;
+  --color-neutral-500: #9b9794;
+  --color-neutral-600: #aeaaa7;
+  --color-neutral-700: #bdb9b6;
+  --color-neutral-800: #dbd8d5;
+  --color-neutral-900: #f5f1ef;
+  --color-neutral-950: #fffdfc;
+
+  /* Status families, only the shades the app actually uses. A tinted ground
+     with a lifted foreground of the same hue, never a saturated fill, which
+     glows on a dark page. */
+  --color-red-50: #2a1a1a;
+  --color-red-100: #3a2322;
+  --color-red-200: #4a2a29;
+  --color-red-400: #c96867;
+  --color-red-500: #d4706f;
+  --color-red-600: #e07f7e;
+  --color-red-700: #f09b9a;
+  --color-red-800: #f5b0af;
+
+  --color-amber-50: #241e14;
+  --color-amber-200: #46351d;
+  --color-amber-300: #54401f;
+  --color-amber-500: #d5a862;
+  --color-amber-600: #c89a5c;
+  --color-amber-700: #c89a5c;
+  --color-amber-800: #e0b273;
+  --color-amber-900: #eac58f;
+
+  --color-sky-50: #15212a;
+  --color-sky-200: #2a4252;
+  --color-sky-800: #8cc0dd;
+
+  --color-orange-100: #33241a;
+  --color-orange-300: #593f2a;
+  --color-orange-900: #e8ae7e;
+
+  --color-emerald-50: #18241c;
+  --color-emerald-700: #7fb894;
+  --color-emerald-800: #8fcf9e;
 }
 
 @utility btn-asym {

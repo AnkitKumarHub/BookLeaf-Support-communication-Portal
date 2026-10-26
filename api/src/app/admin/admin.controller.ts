@@ -46,7 +46,12 @@ export async function listAdminTicketsController(
     to: to ? new Date(`${to}T23:59:59.999Z`) : undefined,
     q: q || undefined,
   });
-  sendData(res, result.rows, 200, { page, limit, total: result.total });
+  sendData(res, result.rows, 200, {
+    page,
+    limit,
+    total: result.total,
+    counts: { needsReply: result.needsReply, draftReady: result.draftReady },
+  });
 }
 
 export async function getAdminTicketController(req: ValidRequest<TicketParams>, res: Response) {

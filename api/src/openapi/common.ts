@@ -48,6 +48,10 @@ export const pageMeta = z.object({
   page: z.number().int(),
   limit: z.number().int(),
   total: z.number().int(),
+  counts: z
+    .record(z.string(), z.number().int())
+    .optional()
+    .meta({ description: "Tallies over everything the filters match.", example: { needsReply: 9, draftReady: 12 } }),
 });
 
 export const book = z.object({

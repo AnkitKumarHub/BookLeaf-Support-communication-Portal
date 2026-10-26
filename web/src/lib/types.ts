@@ -86,7 +86,10 @@ export type AdminQueueRow = {
   priorityOverride: TicketPriority | null;
   effectivePriority: TicketPriority | null;
   aiState: AiState;
+  aiConfidence: string | null;
   draftState: DraftState;
+  // An admin marked the current AI draft as not good enough.
+  draftFlagged: boolean;
   assigneeName: string | null;
   assignedToMe: boolean;
   createdAt: string;
@@ -102,11 +105,9 @@ export type AdminTicketDetail = AdminQueueRow & {
   phone: string | null;
   city: string | null;
   book: Book | null;
-  aiConfidence: string | null;
   aiRationale: string | null;
   draftBody: string | null;
   draftEditedAt: string | null;
-  draftFlagged: boolean;
   replies: TicketReply[];
   notes: AdminNote[];
   attachments: TicketAttachment[];

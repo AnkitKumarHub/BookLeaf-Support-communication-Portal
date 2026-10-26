@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import useSWR from "swr";
-import { EmptyState, ErrorState, filterTabClass, PageHeader, Skeleton, StatusPill } from "@/components/ui";
+import { EmptyState, ErrorState, FilterTabs, PageHeader, Skeleton, StatusPill } from "@/components/ui";
 import type { Envelope } from "@/lib/api";
 import { formatAge, GENERAL_TICKET_LABEL, TICKET_STATUSES, TICKET_STATUS_LABELS } from "@/lib/format";
 import { AUTHOR_TICKETS_KEY } from "@/lib/keys";
@@ -28,23 +28,17 @@ export default function MyTicketsPage() {
         actions={<NewTicketButton />}
       />
 
-      <div className="mb-5 flex flex-wrap gap-1" role="tablist" aria-label="Filter by status">
-        {(["all", ...TICKET_STATUSES] as const).map((value) => {
-          const count = value === "all" ? all?.length : all?.filter((t) => t.status === value).length;
-          return (
-            <button
-              key={value}
-              type="button"
-              role="tab"
-              aria-selected={status === value}
-              onClick={() => setStatus(value)}
-              className={filterTabClass(status === value)}
-            >
-              {value === "all" ? "All" : TICKET_STATUS_LABELS[value]}
-              {count !== undefined && <span className="ml-1.5 tabular-nums opacity-70">{count}</span>}
-            </button>
-          );
-        })}
+      <div className="mb-5">
+        <FilterTabs
+          label="Filter by status"
+          value={status}
+          onChange={setStatus}
+          options={(["all", ...TICKET_STATUSES] as const).map((value) => ({
+            value,
+            label: value === "all" ? "All" : TICKET_STATUS_LABELS[value],
+            count: value === "all" ? all?.length : all?.filter((ticket) => ticket.status === value).length,
+          }))}
+        />
       </div>
 
       {error && <ErrorState message="Your tickets could not be loaded." onRetry={() => void mutate()} />}
@@ -66,26 +60,26 @@ export default function MyTicketsPage() {
       )}
 
       {tickets && tickets.length > 0 && (
-        <ul className="divide-y divide-neutral-100 overflow-hidden rounded-2xl border border-neutral-200 bg-white">
-          {tickets.map((ticket) => (
-            <li key={ticket.id}>
+        <ul className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
+          {tickets.map((ticket, index) => (
+            <li key={ticket.id} className={index === 0 ? undefined : "border-t border-neutral-100"}>
               <Link
                 href={`/author/tickets/${ticket.id}`}
-                className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-3.5 hover:bg-neutral-50"
+                className="grid gap-x-5 gap-y-3 p-5 transition-[background-color] duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ink sm:grid-cols-[minmax(0,1fr)_auto] [@media(hover:hover)_and_(pointer:fine)]:hover:bg-neutral-50"
               >
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-medium">{ticket.subject}</span>
-                  <span className="mt-0.5 block text-xs text-neutral-600">
+                <span className="min-w-0">
+                  <StatusPill status={ticket.status} />
+                  <span className="mt-2.5 block truncate font-medium">{ticket.subject}</span>
+                  <span className="mt-1.5 block truncate text-sm text-neutral-600">
                     {ticket.publicId} · {ticket.book?.title ?? GENERAL_TICKET_LABEL} · opened{" "}
                     {formatAge(ticket.createdAt)}
                   </span>
                 </span>
-                <span className="text-xs text-neutral-600">
+                <span className="text-sm text-neutral-600 sm:self-end">
                   {ticket.replyCount === 0
                     ? "No reply yet"
                     : `${ticket.replyCount} ${ticket.replyCount === 1 ? "reply" : "replies"}`}
                 </span>
-                <StatusPill status={ticket.status} />
               </Link>
             </li>
           ))}

@@ -3,7 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import useSWR from "swr";
-import { Badge, Dash, EmptyState, ErrorState, filterTabClass, Money, PageHeader, Skeleton, Text } from "@/components/ui";
+import { Badge, Dash, EmptyState, ErrorState, FilterTabs, Money, PageHeader, Skeleton, Text } from "@/components/ui";
 import type { Envelope } from "@/lib/api";
 import { DEMO_SELF_SERVICE } from "@/lib/flags";
 import { formatDate, isInProduction } from "@/lib/format";
@@ -70,19 +70,22 @@ function Books() {
         actions={DEMO_SELF_SERVICE && <AddBookButton />}
       />
 
-      <div className="mb-5 flex flex-wrap gap-1" role="tablist" aria-label="Filter books">
-        {FILTERS.map((item) => (
-          <button
-            key={item.value}
-            type="button"
-            role="tab"
-            aria-selected={filter === item.value}
-            onClick={() => setFilter(item.value)}
-            className={filterTabClass(filter === item.value)}
-          >
-            {item.label}
-          </button>
-        ))}
+      <div className="mb-5">
+        <FilterTabs
+          label="Filter books"
+          value={filter}
+          onChange={setFilter}
+          options={FILTERS.map((item) => ({
+            ...item,
+            count: data?.data.filter((book) =>
+              item.value === "all"
+                ? true
+                : item.value === "production"
+                  ? isInProduction(book.status)
+                  : !isInProduction(book.status),
+            ).length,
+          }))}
+        />
       </div>
 
       {error && <ErrorState message="Your books could not be loaded." onRetry={() => void mutate()} />}
