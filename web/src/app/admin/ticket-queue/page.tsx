@@ -196,7 +196,7 @@ function QueueRow({ row }: { row: AdminQueueRow }) {
   const urgent = isUnresolved(row.status) && row.effectivePriority === "critical";
   return (
     <tr
-      className={`hover:bg-neutral-50 ${urgent ? "bg-red-50/40" : ""} ${row.status === "closed" ? "text-neutral-500" : ""}`}
+      className={`relative cursor-pointer hover:bg-neutral-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-ink ${urgent ? "bg-red-50/40" : ""} ${row.status === "closed" ? "text-neutral-500" : ""}`}
     >
       {/* The rail marks an unresolved critical ticket; the badge beside it says
           the same thing in words, so the colour is never the only signal. */}
@@ -210,7 +210,7 @@ function QueueRow({ row }: { row: AdminQueueRow }) {
       <td className="max-w-md px-4 py-3.5">
         <Link
           href={`/admin/tickets/${row.id}`}
-          className="block font-medium text-neutral-900 hover:text-ink hover:underline"
+          className="block font-medium text-neutral-900 after:absolute after:inset-0 after:z-10 after:content-[''] hover:text-ink hover:underline focus-visible:underline focus-visible:outline-none"
         >
           {row.subject}
         </Link>

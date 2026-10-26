@@ -52,7 +52,7 @@ export default function AdminDashboardPage() {
     <>
       <PageHeader
         title="Dashboard"
-        description="Tickets and AI usage. Today and this week use India time; weeks start on Monday."
+        description="Tickets and AI usage"
         onRefresh={refresh}
         refreshing={isValidating || waiting.isValidating}
         actions={
