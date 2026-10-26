@@ -17,6 +17,7 @@
 
 @theme {
   --color-ink: #111111;
+  --color-ring: #111111;
 
   /* The brand rose is a fill: black text on it is 6.6:1, but it is only 2.85:1
      on white, so it must not carry text. Text in the brand colour uses
@@ -43,8 +44,22 @@
   --color-neutral-950: #0a0909;
 }
 
+@utility btn-asym {
+  border-radius: 0 0.625rem 0 0.625rem;
+}
+
+@utility btn-asym-mirror {
+  border-radius: 0.625rem 0 0.625rem 0;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin {
+    animation: none;
+  }
 }

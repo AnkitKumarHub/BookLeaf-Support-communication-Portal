@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import useSWR from "swr";
 import { Badge, Dash, EmptyState, ErrorState, filterTabClass, Money, PageHeader, Skeleton, Text } from "@/components/ui";
 import type { Envelope } from "@/lib/api";
@@ -22,8 +23,36 @@ const FILTERS: { value: Filter; label: string }[] = [
 ];
 
 export default function MyBooksPage() {
+  // useSearchParams needs a Suspense boundary in the App Router.
+  return (
+    <Suspense
+      fallback={
+        <div className="space-y-4">
+          <Skeleton className="h-48 w-full" />
+          <Skeleton className="h-48 w-full" />
+        </div>
+      }
+    >
+      <Books />
+    </Suspense>
+  );
+}
+
+function Books() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const raw = params.get("filter");
+  const filter: Filter = raw === "published" || raw === "production" ? raw : "all";
   const { data, error, isValidating, mutate } = useSWR<Envelope<Book[]>>(AUTHOR_BOOKS_KEY);
-  const [filter, setFilter] = useState<Filter>("all");
+
+  function setFilter(value: Filter) {
+    const next = new URLSearchParams(params.toString());
+    if (value === "all") next.delete("filter");
+    else next.set("filter", value);
+    const text = next.toString();
+    router.replace(text ? `${pathname}?${text}` : pathname, { scroll: false });
+  }
 
   const books = data?.data.filter((book) => {
     if (filter === "published") return !isInProduction(book.status);

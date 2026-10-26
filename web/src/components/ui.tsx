@@ -1,8 +1,9 @@
 "use client";
 
-import { RefreshCw } from "lucide-react";
+import { Check, Circle, CircleDot, CircleOff, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Chip } from "@/components/ui/chip";
 import { CATEGORY_LABELS, EM_DASH, formatMoney, PRIORITY_LABELS, TICKET_STATUS_LABELS } from "@/lib/format";
 import type { AiState, TicketCategory, TicketPriority, TicketStatus } from "@/lib/types";
 
@@ -24,20 +25,23 @@ export function Text({ value }: { value: string | null }) {
   return value === null || value === "" ? <Dash /> : <>{value}</>;
 }
 
-const STATUS_STYLES: Record<TicketStatus, string> = {
-  open: "bg-sky-50 text-sky-800 ring-sky-200",
-  in_progress: "bg-amber-50 text-amber-800 ring-amber-200",
-  resolved: "bg-brand-wash text-brand-deep ring-brand-line",
-  closed: "bg-neutral-100 text-neutral-600 ring-neutral-200",
+const STATUS_CHIP: Record<
+  TicketStatus,
+  { tone: "default" | "medium" | "success"; icon: typeof Circle }
+> = {
+  open: { tone: "default", icon: Circle },
+  in_progress: { tone: "medium", icon: CircleDot },
+  resolved: { tone: "success", icon: Check },
+  closed: { tone: "default", icon: CircleOff },
 };
 
 export function StatusPill({ status }: { status: TicketStatus }) {
+  const { tone, icon: Icon } = STATUS_CHIP[status];
   return (
-    <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${STATUS_STYLES[status]}`}
-    >
+    <Chip tone={tone}>
+      <Icon className="size-3" aria-hidden />
       {TICKET_STATUS_LABELS[status]}
-    </span>
+    </Chip>
   );
 }
 
@@ -136,9 +140,9 @@ export function PageHeader({
             type="button"
             onClick={onRefresh}
             disabled={refreshing}
-            aria-label={refreshing ? "Refreshing" : "Refresh"}
+            aria-label={refreshing ? "Refreshing…" : "Refresh"}
             title="Refresh"
-            className="rounded-md border border-neutral-300 bg-white p-2 text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 disabled:opacity-60"
+            className="rounded-md border border-neutral-300 bg-white p-2 text-neutral-600 transition-[background-color,color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:bg-neutral-100 hover:text-neutral-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink motion-safe:active:scale-[0.98] disabled:opacity-60"
           >
             <RefreshCw className={`size-4 ${refreshing ? "animate-spin" : ""}`} aria-hidden />
           </button>

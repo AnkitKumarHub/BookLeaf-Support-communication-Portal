@@ -1,8 +1,10 @@
 "use client";
 
+import { LogOut } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { Button } from "@/components/ui/button";
 import { RequireRole, useAuthActions, useMe, type Role } from "@/lib/auth";
 import { useTicketStream } from "@/lib/stream";
 
@@ -75,13 +77,16 @@ function Shell({ nav, role, children }: { nav: NavItem[]; role: Role; children: 
           </nav>
           <div className="flex items-center gap-3 text-sm">
             <span className="text-neutral-600">{me?.name}</span>
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="icon"
+              aria-label="Sign out"
+              iconRight={null}
               onClick={() => void logout()}
-              className="rounded-md border border-neutral-300 px-3 py-1.5 text-neutral-700 hover:bg-neutral-100"
             >
-              Sign out
-            </button>
+              <LogOut />
+            </Button>
           </div>
         </div>
       </header>

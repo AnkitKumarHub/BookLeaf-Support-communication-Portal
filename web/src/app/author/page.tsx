@@ -67,11 +67,14 @@ function LinkCard({ href, label, children }: { href: string; label: string; chil
   return (
     <Link
       href={href}
-      className={`group block transition hover:border-brand hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${panelClass}`}
+      className={`group block transition-[border-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink motion-safe:active:scale-[0.98] [@media(hover:hover)_and_(pointer:fine)]:hover:border-ink ${panelClass}`}
     >
       <div className="flex items-start justify-between gap-2">
         <StatLabel>{label}</StatLabel>
-        <ArrowUpRight className="size-4 text-neutral-500 transition group-hover:text-brand-deep" aria-hidden />
+        <ArrowUpRight
+          className="size-4 text-neutral-500 transition-colors duration-150 [@media(hover:hover)_and_(pointer:fine)]:group-hover:text-ink"
+          aria-hidden
+        />
       </div>
       {children}
     </Link>
@@ -165,7 +168,7 @@ function RecentTickets({ tickets }: { tickets: AuthorTicketRow[] | undefined }) 
             <li key={ticket.id}>
               <Link
                 href={`/author/tickets/${ticket.id}`}
-                className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-3.5 hover:bg-neutral-50"
+                className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-3.5 transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ink motion-safe:active:scale-[0.98] [@media(hover:hover)_and_(pointer:fine)]:hover:bg-neutral-50"
               >
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium">{ticket.subject}</span>

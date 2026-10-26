@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FileText, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useState, type FormEvent } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { FileDropzone } from "@/components/file-dropzone";
@@ -38,17 +39,15 @@ export function NewTicketButton({ variant = "primary", label = "New ticket" }: {
   const [busy, setBusy] = useState(false);
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className={
-          variant === "link"
-            ? "font-medium text-brand-deep hover:underline"
-            : "rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-ink hover:bg-brand-strong"
-        }
-      >
-        {label}
-      </button>
+      {variant === "link" ? (
+        <button type="button" onClick={() => setOpen(true)} className="font-medium text-brand-deep hover:underline">
+          {label}
+        </button>
+      ) : (
+        <Button type="button" variant="solid" size="sm" iconRight={null} onClick={() => setOpen(true)}>
+          {label}
+        </Button>
+      )}
       <Modal
         open={open}
         onClose={() => setOpen(false)}
