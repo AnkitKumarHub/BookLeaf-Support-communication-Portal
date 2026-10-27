@@ -55,29 +55,32 @@ function Shell({ nav, role, children }: { nav: NavItem[]; role: Role; children: 
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="border-b border-neutral-200 bg-white">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
-          <Link href={home} className="text-sm font-semibold">
+      {/* The links stay solid. The last part of the bar, border included,
+          fades out, so a card scrolling under it dissolves instead of hitting
+          a hard edge. No blur: that would put the page through the words. */}
+      <div className="sticky top-0 z-20 px-4 pt-3">
+        <header className="pointer-events-none mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-neutral-200 bg-white px-3 pt-2 pb-8 [mask-image:linear-gradient(to_bottom,#000_0,#000_3.25rem,transparent)]">
+          <Link href={home} className="pointer-events-auto px-1.5 text-sm font-semibold">
             BookLeaf <span className="text-brand-deep">{role === "admin" ? "Ops" : "Authors"}</span>
           </Link>
-          <nav className="flex flex-1 flex-wrap gap-1">
+          <nav className="pointer-events-auto flex flex-1 flex-wrap gap-0.5">
             {nav.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 aria-current={active === item.href ? "page" : undefined}
-                className={`rounded-md px-3 py-1.5 text-sm ${
+                className={`rounded-lg px-3 py-1.5 text-sm transition-[background-color,color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink motion-safe:active:scale-[0.98] ${
                   active === item.href
                     ? "bg-neutral-100 font-medium text-ink"
-                    : "text-neutral-600 hover:bg-neutral-100"
+                    : "text-neutral-600 [@media(hover:hover)_and_(pointer:fine)]:hover:bg-neutral-100"
                 }`}
               >
                 {item.label}
               </Link>
             ))}
           </nav>
-          <div className="flex items-center gap-3 text-sm">
-            <span className="text-neutral-600">{me?.name}</span>
+          <div className="pointer-events-auto flex items-center gap-2 text-sm">
+            <span className="px-1 text-neutral-600">{me?.name}</span>
             <ThemeToggle />
             <Button
               type="button"
@@ -90,9 +93,9 @@ function Shell({ nav, role, children }: { nav: NavItem[]; role: Role; children: 
               <LogOut />
             </Button>
           </div>
-        </div>
-      </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
+        </header>
+      </div>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-6">{children}</main>
     </div>
   );
 }

@@ -147,7 +147,7 @@ function AllTickets({ tickets }: { tickets: AdminStats["tickets"] }) {
           </span>
           <span className="inline-flex items-center gap-2">
             <Dot color="var(--color-accent-done)" />
-            {closed.all} resolved or closed
+            {closed.all} resolved
           </span>
         </p>
       </div>
@@ -172,15 +172,15 @@ function NewTickets({ daily }: { daily: AdminStats["tickets"]["daily"] }) {
     <section aria-labelledby="new-tickets" className={`${panelClass} sm:col-span-2 xl:row-span-2`}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h2 id="new-tickets" className={labelClass}>
-          New tickets, last {daily.length} days
+          last {daily.length} days
         </h2>
         <span className="text-xs text-neutral-500">older &rarr; today</span>
       </div>
       <p className="mt-3 text-3xl font-semibold leading-none tabular-nums">{total}</p>
-      <p className="mt-2 text-sm text-neutral-600">in total across the window</p>
+      {/* <p className="mt-2 text-sm text-neutral-600">in total across the window</p> */}
 
       {total === 0 ? (
-        <p className="mt-5 rounded-xl bg-neutral-50 p-4 text-sm text-neutral-600">
+        <p className="mt-15 rounded-xl bg-neutral-50 p-4 text-sm text-neutral-400">
           No new tickets in the last {daily.length} days.
         </p>
       ) : (
@@ -245,7 +245,7 @@ function AiCost({ ai }: { ai: AdminStats["ai"] }) {
   return (
     <section aria-labelledby="ai-cost" className={tileClass}>
       <h2 id="ai-cost" className={labelClass}>
-        AI cost, all time
+        AI Cost
       </h2>
       <div>
         <p className="text-3xl font-semibold leading-none tabular-nums">{formatCostInr(costInr)}</p>
@@ -279,7 +279,7 @@ function Confidence({ quality }: { quality: AdminStats["quality"] }) {
     <section aria-labelledby="confidence" className={`${tileClass} sm:col-span-2`}>
       <div className="flex items-baseline justify-between gap-4">
         <h2 id="confidence" className={labelClass}>
-          Average AI confidence
+          AI confidence (AVG.)
         </h2>
         <span className="text-sm text-neutral-500">{classified} classified</span>
       </div>
@@ -308,6 +308,47 @@ function Confidence({ quality }: { quality: AdminStats["quality"] }) {
 
 const TASK_LABELS = { classify: "Classification", draft: "Reply drafts" } as const;
 
+// Pikaicons
+function GptIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path
+        opacity="0.28"
+        transform="translate(2.8 3)"
+        fill="currentColor"
+        d="M4.2 3C4.2 1.34 5.54 0 7.2 0C8.74 0 10.01 1.16 10.18 2.66L11.89 1.67C13.33 0.84 15.16 1.33 15.99 2.77C16.76 4.1 16.39 5.79 15.18 6.68L16.89 7.67C18.33 8.5 18.82 10.33 17.99 11.77C17.22 13.1 15.58 13.62 14.2 13.02L14.2 15C14.2 16.66 12.85 18 11.2 18C9.65 18 8.38 16.84 8.22 15.34L6.5 16.33C5.07 17.16 3.23 16.67 2.4 15.23C1.63 13.9 2 12.22 3.22 11.32L1.5 10.33C0.07 9.5 -0.43 7.67 0.4 6.23C1.17 4.9 2.82 4.38 4.2 4.98L4.2 3Z"
+      />
+      <path
+        transform="translate(2.8 3)"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M4.2 3C4.2 1.34 5.54 0 7.2 0C8.74 0 10.01 1.16 10.18 2.66L11.89 1.67C13.33 0.84 15.16 1.33 15.99 2.77C16.76 4.1 16.39 5.79 15.18 6.68L16.89 7.67C18.33 8.5 18.82 10.33 17.99 11.77C17.22 13.1 15.58 13.62 14.2 13.02L14.2 15C14.2 16.66 12.85 18 11.2 18C9.65 18 8.38 16.84 8.22 15.34L6.5 16.33C5.07 17.16 3.23 16.67 2.4 15.23C1.63 13.9 2 12.22 3.22 11.32L1.5 10.33C0.07 9.5 -0.43 7.67 0.4 6.23C1.17 4.9 2.82 4.38 4.2 4.98L4.2 3Z"
+      />
+      <path
+        transform="translate(2.8 3)"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M7.47 9.96L5.17 8.58C4.57 8.22 4.2 7.57 4.2 6.87L4.2 4.98M7.47 9.96L9.16 10.98M7.47 9.96L7.5 7.98M9.16 10.98L6.82 12.28C6.21 12.62 5.46 12.62 4.85 12.26L3.22 11.32M9.16 10.98L10.89 10.02M10.89 10.02L10.85 12.7C10.84 13.4 10.46 14.05 9.85 14.4L8.22 15.34M10.89 10.02L10.93 8.04M10.93 8.04L13.23 9.42C13.83 9.78 14.2 10.43 14.2 11.13L14.2 13.02M10.93 8.04L9.23 7.02M9.23 7.02L11.57 5.72C12.19 5.38 12.93 5.38 13.54 5.74L15.18 6.68M9.23 7.02L7.5 7.98M7.5 7.98L7.54 5.3C7.56 4.6 7.93 3.95 8.54 3.6L10.18 2.66"
+      />
+    </svg>
+  );
+}
+
+function ModelLabel({ model }: { model: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      {model.toLowerCase().startsWith("gpt") && <GptIcon className="size-3.5 shrink-0" />}
+      {model}
+    </span>
+  );
+}
+
 // One table for both cuts of the same runs. Tasks show where the money went;
 // a second model list appears only when more than one model was used, so a
 // single model is not repeated as its own table beside the tasks.
@@ -318,7 +359,7 @@ function ModelsInUse({ ai }: { ai: AdminStats["ai"] }) {
   const oneModel = byModel.length === 1 ? byModel[0] : null;
 
   return (
-    <section aria-labelledby="models" className={`${panelClass} sm:col-span-2`}>
+    <section aria-labelledby="models" className={`${panelClass} flex flex-col sm:col-span-2`}>
       <h2 id="models" className={labelClass}>
         Models in use
       </h2>
@@ -363,7 +404,7 @@ function ModelsInUse({ ai }: { ai: AdminStats["ai"] }) {
                 byModel.map((row) => (
                   <tr key={row.model} className="border-t border-neutral-100">
                     <th scope="row" className="py-2.5 pr-3 text-left font-mono text-xs font-normal">
-                      {row.model}
+                      <ModelLabel model={row.model} />
                       <TokenLine input={row.inputTokens} output={row.outputTokens} />
                     </th>
                     <td className="py-2.5 text-right tabular-nums">{formatCount(row.runs)}</td>
@@ -379,8 +420,8 @@ function ModelsInUse({ ai }: { ai: AdminStats["ai"] }) {
                 <th scope="row" className="py-2.5 pr-3 text-left font-medium">
                   All runs
                   {oneModel && (
-                    <span className="mt-0.5 block font-mono text-xs font-normal text-neutral-600">
-                      {oneModel.model}
+                    <span className="mt-0.5 flex items-center gap-1.5 font-mono text-xs font-normal text-neutral-600">
+                      <ModelLabel model={oneModel.model} />
                     </span>
                   )}
                   <TokenLine input={tokens.all.inputTokens} output={tokens.all.outputTokens} />
@@ -394,10 +435,12 @@ function ModelsInUse({ ai }: { ai: AdminStats["ai"] }) {
         </div>
       )}
 
-      <p className="mt-4 text-xs leading-relaxed text-neutral-500">
-        Estimated from stored token counts at each model&apos;s list price, converted at ₹{usdToInr} per US$.
-        {unpricedModels.length > 0 && ` No price set for ${unpricedModels.join(", ")}.`}
-      </p>
+      <div className="mt-auto flex items-end justify-between gap-4 pt-4">
+        {unpricedModels.length > 0 && (
+          <p className="text-xs text-neutral-500">No price set for {unpricedModels.join(", ")}.</p>
+        )}
+        <p className="ml-auto shrink-0 text-xs tabular-nums text-neutral-500">1 US$ = ₹{usdToInr}</p>
+      </div>
     </section>
   );
 }
@@ -522,9 +565,12 @@ function WaitingOnUs({ rows, failed }: { rows: AdminQueueRow[] | undefined; fail
         </h2>
         <Link
           href="/admin/ticket-queue"
-          className="text-xs font-medium text-neutral-800 underline underline-offset-2 hover:text-ink"
+          className="group inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-neutral-800 no-underline transition-colors duration-150 hover:bg-neutral-100 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
         >
-          Open the queue →
+          Open queue
+          <span aria-hidden className="transition-transform duration-150 group-hover:translate-x-0.5">
+            →
+          </span>
         </Link>
       </div>
 
